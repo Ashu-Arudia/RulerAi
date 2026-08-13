@@ -1,10 +1,10 @@
-# Fireflies.ai Clone — Meeting Notes & Transcription Platform
+# Ruler AI — Meeting Notes & Transcription Platform
 
 A full-stack clone of the Fireflies.ai meeting-assistant platform, built as part of the SDE Fullstack Assignment. Features a pixel-faithful recreation of the Fireflies workspace experience with interactive transcripts, AI summaries, action items, and full CRUD meeting management.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js** 18+

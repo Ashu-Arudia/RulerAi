@@ -3,9 +3,9 @@
 import { usePathname, useRouter } from 'next/navigation';
 
 const CHANNELS = [
-  { id: 'my', label: 'My Meetings', icon: '👤', channel: 'My Meetings' },
-  { id: 'all', label: 'All Meetings', icon: '📋', channel: 'All Meetings' },
-  { id: 'voice', label: 'Voice Agent Meetings', icon: '🤖', channel: 'Voice Agent Meetings' },
+  { id: 'my', label: 'My Meetings', icon: '', channel: 'My Meetings' },
+  { id: 'all', label: 'All Meetings', icon: '', channel: 'All Meetings' },
+  { id: 'voice', label: 'Voice Agent Meetings', icon: '', channel: 'Voice Agent Meetings' },
   { id: 'uploads', label: 'Uploads', icon: '📁', channel: 'Uploads' },
 ];
 

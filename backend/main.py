@@ -6,7 +6,7 @@ from seed_data import seed_database
 from routers import meetings, transcripts, summaries, action_items
 
 app = FastAPI(
-    title="Fireflies Clone API",
+    title="Ruler AI",
     description="Meeting Notes & Transcription Platform API",
     version="1.0.0",
 )

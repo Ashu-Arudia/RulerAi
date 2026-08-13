@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+/* ─── Animated floating orbs background ─────────────────────────────────── */
 function FloatingOrb({ style }: { style: React.CSSProperties }) {
   return <div className="landing-orb" style={style} />;
 }
 
+/* ─── Stat badge ─────────────────────────────────────────────────────────── */
 function StatBadge({ value, label }: { value: string; label: string }) {
   return (
     <div className="landing-stat">
@@ -17,6 +19,7 @@ function StatBadge({ value, label }: { value: string; label: string }) {
   );
 }
 
+/* ─── Feature pill ───────────────────────────────────────────────────────── */
 function FeaturePill({ icon, text }: { icon: string; text: string }) {
   return (
     <div className="landing-pill">
@@ -47,6 +50,7 @@ export default function LandingPage() {
   return (
     <>
       <style>{`
+        /* ── Landing page scoped styles ── */
         .landing-root {
           min-height: 100vh;
           width: 100vw;
@@ -59,6 +63,8 @@ export default function LandingPage() {
           overflow: hidden;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
+
+        /* Gradient mesh background */
         .landing-root::before {
           content: '';
           position: absolute;
@@ -69,6 +75,8 @@ export default function LandingPage() {
             radial-gradient(ellipse 50% 60% at 50% 50%, rgba(30,8,60,0.8) 0%, transparent 80%);
           pointer-events: none;
         }
+
+        /* Animated grid */
         .landing-grid {
           position: absolute;
           inset: 0;
@@ -79,6 +87,8 @@ export default function LandingPage() {
           pointer-events: none;
           mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
         }
+
+        /* Floating glassy orbs */
         .landing-orb {
           position: absolute;
           border-radius: 50%;
@@ -86,10 +96,13 @@ export default function LandingPage() {
           pointer-events: none;
           animation: orbFloat 8s ease-in-out infinite alternate;
         }
+
         @keyframes orbFloat {
           0%   { transform: translate(0, 0) scale(1); }
           100% { transform: translate(20px, -30px) scale(1.08); }
         }
+
+        /* Card */
         .landing-card {
           position: relative;
           z-index: 10;
@@ -108,7 +121,13 @@ export default function LandingPage() {
           transform: translateY(24px);
           transition: opacity 0.6s ease, transform 0.6s ease;
         }
-        .landing-card.visible { opacity: 1; transform: translateY(0); }
+
+        .landing-card.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* Logo */
         .landing-logo {
           display: flex;
           align-items: center;
@@ -116,6 +135,7 @@ export default function LandingPage() {
           margin-bottom: 32px;
           justify-content: center;
         }
+
         .landing-logo-icon {
           width: 42px;
           height: 42px;
@@ -127,13 +147,19 @@ export default function LandingPage() {
           box-shadow: 0 8px 24px rgba(105,56,239,0.4);
           flex-shrink: 0;
         }
+
         .landing-logo-name {
           font-size: 1.375rem;
           font-weight: 700;
           color: #fff;
           letter-spacing: -0.02em;
         }
-        .landing-logo-name span { color: #a78bfa; }
+
+        .landing-logo-name span {
+          color: #a78bfa;
+        }
+
+        /* Headline */
         .landing-headline {
           text-align: center;
           margin-bottom: 8px;
@@ -146,6 +172,7 @@ export default function LandingPage() {
           background-clip: text;
           letter-spacing: -0.02em;
         }
+
         .landing-subheadline {
           text-align: center;
           font-size: 0.9rem;
@@ -153,6 +180,8 @@ export default function LandingPage() {
           line-height: 1.6;
           margin-bottom: 32px;
         }
+
+        /* Stats row */
         .landing-stats {
           display: flex;
           justify-content: center;
@@ -163,13 +192,20 @@ export default function LandingPage() {
           border-radius: 14px;
           border: 1px solid rgba(105,56,239,0.15);
         }
+
         .landing-stat {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 2px;
         }
-        .landing-stat-value { font-size: 1.125rem; font-weight: 700; color: #a78bfa; }
+
+        .landing-stat-value {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #a78bfa;
+        }
+
         .landing-stat-label {
           font-size: 0.7rem;
           color: rgba(255,255,255,0.4);
@@ -177,7 +213,15 @@ export default function LandingPage() {
           letter-spacing: 0.05em;
           font-weight: 500;
         }
-        .landing-stat-sep { width: 1px; background: rgba(255,255,255,0.08); align-self: stretch; }
+
+        /* Divider */
+        .landing-stat-sep {
+          width: 1px;
+          background: rgba(255,255,255,0.08);
+          align-self: stretch;
+        }
+
+        /* Buttons */
         .landing-btn {
           width: 100%;
           padding: 14px 20px;
@@ -196,6 +240,7 @@ export default function LandingPage() {
           position: relative;
           overflow: hidden;
         }
+
         .landing-btn::after {
           content: '';
           position: absolute;
@@ -206,29 +251,44 @@ export default function LandingPage() {
           border-radius: inherit;
         }
         .landing-btn:active::after { opacity: 0.06; }
+
         .landing-btn-google {
           background: #fff;
           color: #1a1a2e;
           box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
+
         .landing-btn-google:hover:not(:disabled) {
           background: #f9f9ff;
           box-shadow: 0 8px 28px rgba(0,0,0,0.4);
           transform: translateY(-1px);
         }
-        .landing-btn-google:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        .landing-btn-google:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+
         .landing-btn-demo {
           background: transparent;
           color: rgba(255,255,255,0.75);
           border: 1px solid rgba(255,255,255,0.12);
         }
+
         .landing-btn-demo:hover:not(:disabled) {
           background: rgba(255,255,255,0.06);
           color: #fff;
           border-color: rgba(255,255,255,0.22);
           transform: translateY(-1px);
         }
-        .landing-btn-demo:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .landing-btn-demo:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .landing-spinner {
           width: 18px;
@@ -239,19 +299,31 @@ export default function LandingPage() {
           animation: spin 0.7s linear infinite;
           flex-shrink: 0;
         }
+        .landing-btn-google .landing-spinner {
+          border-color: rgba(0,0,0,0.15);
+          border-top-color: #6938ef;
+        }
+
+        /* Separator */
         .landing-sep {
           display: flex;
           align-items: center;
           gap: 12px;
           margin: 20px 0;
         }
-        .landing-sep-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+        .landing-sep-line {
+          flex: 1;
+          height: 1px;
+          background: rgba(255,255,255,0.08);
+        }
         .landing-sep-text {
           font-size: 0.75rem;
           color: rgba(255,255,255,0.3);
           font-weight: 500;
           white-space: nowrap;
         }
+
+        /* Feature pills */
         .landing-pills {
           display: flex;
           flex-wrap: wrap;
@@ -271,6 +343,8 @@ export default function LandingPage() {
           background: rgba(255,255,255,0.04);
           border: 1px solid rgba(255,255,255,0.07);
         }
+
+        /* Footer note */
         .landing-footer-note {
           text-align: center;
           font-size: 0.7rem;
@@ -278,6 +352,8 @@ export default function LandingPage() {
           margin-top: 20px;
           line-height: 1.6;
         }
+
+        /* Demo badge */
         .demo-badge {
           display: inline-flex;
           align-items: center;
@@ -298,21 +374,24 @@ export default function LandingPage() {
           height: 5px;
           border-radius: 50%;
           background: #34d399;
-          animation: livePulse 2s ease infinite;
+          animation: pulse 2s ease infinite;
         }
-        @keyframes livePulse {
+        @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.4; transform: scale(0.8); }
+          50%       { opacity: 0.5; transform: scale(0.85); }
         }
       `}</style>
 
       <div className="landing-root">
+        {/* Grid overlay */}
         <div className="landing-grid" />
 
+        {/* Floating glassy orbs */}
         <FloatingOrb style={{ width: 400, height: 400, top: -100, left: -120, background: 'rgba(105,56,239,0.18)', animationDuration: '9s' }} />
         <FloatingOrb style={{ width: 300, height: 300, bottom: -80, right: -60, background: 'rgba(168,85,247,0.14)', animationDuration: '11s', animationDelay: '2s' }} />
         <FloatingOrb style={{ width: 200, height: 200, top: '40%', right: '10%', background: 'rgba(99,102,241,0.12)', animationDuration: '7s', animationDelay: '1s' }} />
 
+        {/* Main card */}
         <div className={`landing-card ${mounted ? 'visible' : ''}`}>
 
           {/* Logo */}
@@ -327,7 +406,7 @@ export default function LandingPage() {
             <span className="landing-logo-name">Scaler<span>AI</span></span>
           </div>
 
-          {/* Live badge */}
+          {/* Demo badge */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div className="demo-badge">
               <div className="demo-dot" />
@@ -341,16 +420,16 @@ export default function LandingPage() {
             Transcribe, summarize, and extract action items from every conversation — automatically.
           </p>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div className="landing-stats">
             <StatBadge value="99%" label="Accuracy" />
             <div className="landing-stat-sep" />
-            <StatBadge value="3×" label="Faster Notes" />
+            <StatBadge value="3× " label="Faster Notes" />
             <div className="landing-stat-sep" />
             <StatBadge value="50+" label="Integrations" />
           </div>
 
-          {/* Google Sign In */}
+          {/* Google Login */}
           <button
             id="btn-google-login"
             className="landing-btn landing-btn-google"
@@ -358,7 +437,7 @@ export default function LandingPage() {
             disabled={googleLoading || demoLoading}
           >
             {googleLoading ? (
-              <div className="landing-spinner" style={{ borderColor: 'rgba(0,0,0,0.12)', borderTopColor: '#6938ef' }} />
+              <div className="landing-spinner" />
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -377,7 +456,7 @@ export default function LandingPage() {
             <div className="landing-sep-line" />
           </div>
 
-          {/* Demo */}
+          {/* Demo button */}
           <button
             id="btn-try-demo"
             className="landing-btn landing-btn-demo"
@@ -407,6 +486,7 @@ export default function LandingPage() {
             <FeaturePill icon="📊" text="Analytics" />
           </div>
 
+          {/* Footer note */}
           <p className="landing-footer-note">
             By signing in, you agree to our Terms of Service and Privacy Policy.<br/>
             We never share your data with third parties.
