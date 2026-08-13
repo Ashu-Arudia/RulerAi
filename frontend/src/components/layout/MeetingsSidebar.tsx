@@ -9,7 +9,12 @@ const CHANNELS = [
   { id: 'uploads', label: 'Uploads', icon: '📁', channel: 'Uploads' },
 ];
 
-export default function MeetingsSidebar() {
+interface MeetingsSidebarProps {
+  /** Base path for channel navigation links. Defaults to /meetings */
+  basePath?: string;
+}
+
+export default function MeetingsSidebar({ basePath = '/meetings' }: MeetingsSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -23,7 +28,7 @@ export default function MeetingsSidebar() {
   };
 
   const navigate = (channel: string) => {
-    router.push(`/meetings?channel=${encodeURIComponent(channel)}`);
+    router.push(`${basePath}?channel=${encodeURIComponent(channel)}`);
   };
 
   return (

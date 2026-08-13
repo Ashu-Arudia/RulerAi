@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 const NAV_ITEMS = [
   {
     id: 'home',
     label: 'Home',
-    href: '/',
+    href: '/home',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -100,16 +101,26 @@ const BOTTOM_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
+    if (href === '/home') return pathname === '/home';
     return pathname.startsWith(href);
   };
+
+  const user = session?.user as { id?: string; name?: string | null; image?: string | null } | undefined;
+  const initials = (user?.name ?? 'U')
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <aside className="sidebar-icon">
       {/* Logo */}
-      <div className="sidebar-logo">
+      <div className="sidebar-logo" style={{ cursor: 'pointer' }} onClick={() => router.push('/home')}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
         </svg>
@@ -133,10 +144,28 @@ export default function Sidebar() {
         </Link>
       ))}
 
-      {/* Profile avatar */}
-      <div className="avatar" style={{ background: '#6938ef', marginTop: 8 }}>
-        SC
-      </div>
+      {/* User avatar — real Google photo if available, else initials */}
+      {user?.image ? (
+        <img
+          src={user.image}
+          alt={user.name ?? 'User'}
+          style={{
+            width: 32, height: 32, borderRadius: '50%', marginTop: 8, cursor: 'pointer',
+            border: '2px solid var(--color-brand-light)', flexShrink: 0,
+          }}
+          title={user.name ?? 'My Account'}
+          onClick={() => router.push('/home')}
+        />
+      ) : (
+        <div
+          className="avatar"
+          style={{ background: '#6938ef', marginTop: 8, cursor: 'pointer' }}
+          title={user?.name ?? 'My Account'}
+          onClick={() => router.push('/home')}
+        >
+          {initials}
+        </div>
+      )}
     </aside>
   );
 }

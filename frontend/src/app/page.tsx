@@ -36,12 +36,12 @@ export default function LandingPage() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    await signIn('google', { callbackUrl: '/meetings' });
+    await signIn('google', { callbackUrl: '/home' });
   };
 
   const handleDemo = () => {
     setDemoLoading(true);
-    router.push('/meetings');
+    router.push('/demo/meetings');
   };
 
   return (

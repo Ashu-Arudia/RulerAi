@@ -10,11 +10,30 @@ import {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+/**
+ * Core fetch wrapper.
+ * Pass `userId` to scope the request to an authenticated user's data.
+ * Omit `userId` (or pass null/undefined) for demo mode (no X-User-Id header → demo data).
+ */
+async function request<T>(
+  path: string,
+  options?: RequestInit,
+  userId?: string | null,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string>),
+  };
+
+  if (userId) {
+    headers['X-User-Id'] = userId;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
+    headers,
   });
+
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(error.detail || `HTTP ${res.status}`);
@@ -25,47 +44,54 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ─── Meetings ─────────────────────────────────────────────────────────────────
 
-export async function getMeetings(params?: {
-  search?: string;
-  channel?: string;
-  sort?: string;
-}): Promise<Meeting[]> {
+export async function getMeetings(
+  params?: { search?: string; channel?: string; sort?: string },
+  userId?: string | null,
+): Promise<Meeting[]> {
   const query = new URLSearchParams();
   if (params?.search) query.set('search', params.search);
   if (params?.channel) query.set('channel', params.channel);
   if (params?.sort) query.set('sort', params.sort);
   const qs = query.toString();
-  return request<Meeting[]>(`/meetings${qs ? `?${qs}` : ''}`);
+  return request<Meeting[]>(`/meetings${qs ? `?${qs}` : ''}`, {}, userId);
 }
 
-export async function getMeeting(id: number): Promise<MeetingDetail> {
-  return request<MeetingDetail>(`/meetings/${id}`);
+export async function getMeeting(id: number, userId?: string | null): Promise<MeetingDetail> {
+  return request<MeetingDetail>(`/meetings/${id}`, {}, userId);
 }
 
-export async function createMeeting(data: CreateMeetingPayload): Promise<Meeting> {
-  return request<Meeting>('/meetings', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+export async function createMeeting(
+  data: CreateMeetingPayload,
+  userId?: string | null,
+): Promise<Meeting> {
+  return request<Meeting>('/meetings', { method: 'POST', body: JSON.stringify(data) }, userId);
 }
 
-export async function updateMeeting(id: number, data: UpdateMeetingPayload): Promise<Meeting> {
-  return request<Meeting>(`/meetings/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+export async function updateMeeting(
+  id: number,
+  data: UpdateMeetingPayload,
+  userId?: string | null,
+): Promise<Meeting> {
+  return request<Meeting>(`/meetings/${id}`, { method: 'PUT', body: JSON.stringify(data) }, userId);
 }
 
-export async function deleteMeeting(id: number): Promise<void> {
-  return request<void>(`/meetings/${id}`, { method: 'DELETE' });
+export async function deleteMeeting(id: number, userId?: string | null): Promise<void> {
+  return request<void>(`/meetings/${id}`, { method: 'DELETE' }, userId);
 }
 
-export async function uploadTranscript(meetingId: number, file: File): Promise<{ message: string; count: number }> {
+export async function uploadTranscript(
+  meetingId: number,
+  file: File,
+  userId?: string | null,
+): Promise<{ message: string; count: number }> {
   const formData = new FormData();
   formData.append('file', file);
+  const headers: Record<string, string> = {};
+  if (userId) headers['X-User-Id'] = userId;
   const res = await fetch(`${BASE_URL}/meetings/${meetingId}/transcript/upload`, {
     method: 'POST',
     body: formData,
+    headers,
   });
   if (!res.ok) throw new Error('Upload failed');
   return res.json();
@@ -73,44 +99,69 @@ export async function uploadTranscript(meetingId: number, file: File): Promise<{
 
 // ─── Action Items ─────────────────────────────────────────────────────────────
 
-export async function getActionItems(meetingId: number): Promise<ActionItem[]> {
-  return request<ActionItem[]>(`/action-items/meeting/${meetingId}`);
+export async function getActionItems(
+  meetingId: number,
+  userId?: string | null,
+): Promise<ActionItem[]> {
+  return request<ActionItem[]>(`/action-items/meeting/${meetingId}`, {}, userId);
 }
 
 export async function createActionItem(
   meetingId: number,
-  data: { text: string; assignee?: string; due_date?: string }
+  data: { text: string; assignee?: string; due_date?: string },
+  userId?: string | null,
 ): Promise<ActionItem> {
-  return request<ActionItem>(`/action-items/meeting/${meetingId}`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  return request<ActionItem>(
+    `/action-items/meeting/${meetingId}`,
+    { method: 'POST', body: JSON.stringify(data) },
+    userId,
+  );
 }
 
 export async function updateActionItem(
   itemId: number,
-  data: { text?: string; assignee?: string; due_date?: string; completed?: boolean }
+  data: { text?: string; assignee?: string; due_date?: string; completed?: boolean },
+  userId?: string | null,
 ): Promise<ActionItem> {
-  return request<ActionItem>(`/action-items/${itemId}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+  return request<ActionItem>(
+    `/action-items/${itemId}`,
+    { method: 'PUT', body: JSON.stringify(data) },
+    userId,
+  );
 }
 
-export async function deleteActionItem(itemId: number): Promise<void> {
-  return request<void>(`/action-items/${itemId}`, { method: 'DELETE' });
+export async function deleteActionItem(itemId: number, userId?: string | null): Promise<void> {
+  return request<void>(`/action-items/${itemId}`, { method: 'DELETE' }, userId);
 }
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
-export async function getSummary(meetingId: number): Promise<Summary> {
-  return request<Summary>(`/summaries/${meetingId}`);
+export async function getSummary(meetingId: number, userId?: string | null): Promise<Summary> {
+  return request<Summary>(`/summaries/${meetingId}`, {}, userId);
 }
 
 // ─── Search ──────────────────────────────────────────────────────────────────
 
-export async function globalSearch(q: string): Promise<SearchResult[]> {
-  return request<SearchResult[]>(`/transcripts/search/global?q=${encodeURIComponent(q)}`);
+export async function globalSearch(
+  q: string,
+  userId?: string | null,
+): Promise<SearchResult[]> {
+  return request<SearchResult[]>(
+    `/transcripts/search/global?q=${encodeURIComponent(q)}`,
+    {},
+    userId,
+  );
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+export async function upsertUser(data: {
+  google_id: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}): Promise<{ id: number; google_id: string; email: string; name: string; picture: string }> {
+  return request('/users/upsert', { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

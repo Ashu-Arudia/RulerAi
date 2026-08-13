@@ -1,6 +1,6 @@
 import json
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -10,9 +10,22 @@ from models import SummaryCreate, SummaryUpdate
 router = APIRouter(prefix="/summaries", tags=["summaries"])
 
 
+def _get_scoped_meeting(db: Session, meeting_id: int, user_id: Optional[str]):
+    query = db.query(Meeting).filter(Meeting.id == meeting_id)
+    if user_id:
+        query = query.filter(Meeting.user_id == user_id)
+    else:
+        query = query.filter(Meeting.user_id == None)  # noqa: E711
+    return query.first()
+
+
 @router.get("/{meeting_id}", response_model=dict)
-def get_summary(meeting_id: int, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def get_summary(
+    meeting_id: int,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    meeting = _get_scoped_meeting(db, meeting_id, x_user_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -32,7 +45,16 @@ def get_summary(meeting_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{meeting_id}", response_model=dict)
-def update_summary(meeting_id: int, update_data: SummaryUpdate, db: Session = Depends(get_db)):
+def update_summary(
+    meeting_id: int,
+    update_data: SummaryUpdate,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    meeting = _get_scoped_meeting(db, meeting_id, x_user_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
     summary = db.query(Summary).filter(Summary.meeting_id == meeting_id).first()
     if not summary:
         raise HTTPException(status_code=404, detail="Summary not found")

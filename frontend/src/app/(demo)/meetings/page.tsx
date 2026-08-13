@@ -3,22 +3,65 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import MeetingsSidebar from '@/components/layout/MeetingsSidebar';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import { getMeetings, deleteMeeting, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
 import { Meeting } from '@/lib/types';
 import { useToast } from '@/components/ui/ToastProvider';
 
+/* Demo banner — shown above the page content */
+function DemoBanner() {
+  return (
+    <div style={{
+      background: 'linear-gradient(90deg, rgba(245,158,11,0.12) 0%, rgba(251,191,36,0.08) 100%)',
+      borderBottom: '1px solid rgba(245,158,11,0.2)',
+      padding: '9px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      fontSize: '0.8125rem',
+      color: '#92400e',
+      flexShrink: 0,
+    }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '2px 8px', borderRadius: 99,
+        background: 'rgba(245,158,11,0.2)', color: '#d97706',
+        fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>
+        Demo Mode
+      </span>
+      <span style={{ color: '#78716c' }}>
+        You&apos;re exploring sample data. Sign in to create your own workspace.
+      </span>
+      <button
+        onClick={() => signIn('google', { callbackUrl: '/home' })}
+        style={{
+          marginLeft: 'auto',
+          padding: '5px 14px',
+          borderRadius: 8,
+          background: '#6938ef',
+          color: 'white',
+          border: 'none',
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          flexShrink: 0,
+        }}
+      >
+        Sign In Free →
+      </button>
+    </div>
+  );
+}
+
 function MeetingsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { data: session, status } = useSession();
-
-  const userId = (session?.user as { id?: string })?.id ?? null;
 
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,35 +72,27 @@ function MeetingsContent() {
 
   const channel = searchParams.get('channel') || 'My Meetings';
 
-  // Redirect unauthenticated users to landing
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/');
-    }
-  }, [status, router]);
-
+  // No userId — demo data (user_id IS NULL in DB)
   const fetchMeetings = useCallback(async () => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const data = await getMeetings({ search: search || undefined, channel, sort }, userId);
+      const data = await getMeetings({ search: search || undefined, channel, sort }, null);
       setMeetings(data);
     } catch {
       toast('Failed to load meetings', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, channel, sort, userId]);
+  }, [search, channel, sort]);
 
   useEffect(() => {
-    if (status !== 'authenticated') return;
     const timeout = setTimeout(fetchMeetings, 300);
     return () => clearTimeout(timeout);
-  }, [fetchMeetings, status]);
+  }, [fetchMeetings]);
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteMeeting(id, userId);
+      await deleteMeeting(id, null);
       toast('Meeting deleted', 'success');
       setDeleteConfirm(null);
       fetchMeetings();
@@ -66,38 +101,12 @@ function MeetingsContent() {
     }
   };
 
-  const user = session?.user as { id?: string; name?: string | null; image?: string | null } | undefined;
-  const userInitials = (user?.name ?? 'U')
-    .split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
-  if (status === 'loading') {
-    return (
-      <>
-        <MeetingsSidebar />
-        <div className="main-content">
-          <div className="topbar" />
-          <div className="page-content">
-            <div className="meetings-page">
-              <div className="meetings-grid">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} style={{ height: 70, borderRadius: 10 }} className="skeleton" />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
-      <MeetingsSidebar />
+      <MeetingsSidebar basePath="/demo/meetings" />
       <div className="main-content">
+        <DemoBanner />
+
         {/* Topbar */}
         <div className="topbar">
           <div className="topbar-search">
@@ -105,7 +114,7 @@ function MeetingsContent() {
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
-              id="meetings-search"
+              id="demo-meetings-search"
               type="text"
               placeholder="Search by title or keyword"
               value={search}
@@ -116,7 +125,7 @@ function MeetingsContent() {
           <div className="topbar-spacer" />
           <div className="topbar-actions">
             <button
-              id="new-meeting-btn"
+              id="demo-new-meeting-btn"
               className="topbar-btn topbar-btn-primary"
               onClick={() => setShowCreate(true)}
             >
@@ -125,25 +134,6 @@ function MeetingsContent() {
               </svg>
               New Meeting
             </button>
-            {/* Real user avatar — click to go home */}
-            {user?.image ? (
-              <img
-                src={user.image}
-                alt={user.name ?? 'User'}
-                style={{ width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', border: '2px solid var(--color-brand-light)' }}
-                title={user.name ?? ''}
-                onClick={() => router.push('/home')}
-              />
-            ) : (
-              <div
-                className="avatar"
-                style={{ background: '#6938ef', cursor: 'pointer' }}
-                title={user?.name ?? ''}
-                onClick={() => router.push('/home')}
-              >
-                {userInitials}
-              </div>
-            )}
           </div>
         </div>
 
@@ -154,7 +144,7 @@ function MeetingsContent() {
               <div>
                 <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 2 }}>{channel}</h1>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>
-                  AI-powered meeting recordings and transcriptions
+                  Sample meeting recordings — demo data only
                 </p>
               </div>
             </div>
@@ -166,14 +156,14 @@ function MeetingsContent() {
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
                 <input
-                  id="meetings-filter-search"
+                  id="demo-meetings-filter"
                   type="text"
                   placeholder="Filter meetings..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <select id="meetings-sort" className="filter-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+              <select id="demo-meetings-sort" className="filter-select" value={sort} onChange={(e) => setSort(e.target.value)}>
                 <option value="date_desc">Newest First</option>
                 <option value="date_asc">Oldest First</option>
                 <option value="title_asc">Title A-Z</option>
@@ -199,15 +189,8 @@ function MeetingsContent() {
                     <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
                 </div>
-                <h3>No meetings yet</h3>
-                <p>
-                  {search ? `No meetings match "${search}"` : "You haven't recorded any meetings yet. Create your first one!"}
-                </p>
-                {!search && (
-                  <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setShowCreate(true)}>
-                    Record First Meeting
-                  </button>
-                )}
+                <h3>No meetings found</h3>
+                <p>{search ? `No meetings match "${search}"` : 'No demo data available.'}</p>
               </div>
             ) : (
               <div className="meetings-grid">
@@ -219,7 +202,8 @@ function MeetingsContent() {
 
                   return (
                     <div key={meeting.id} style={{ position: 'relative' }}>
-                      <Link href={`/meetings/${meeting.id}`} className="meeting-card">
+                      {/* Link to demo meeting detail */}
+                      <Link href={`/demo/meetings/${meeting.id}`} className="meeting-card">
                         <div className="meeting-card-color" style={{ background: meeting.thumbnail_color }}>
                           {initials}
                         </div>
@@ -304,17 +288,13 @@ function MeetingsContent() {
       </div>
 
       {showCreate && (
-        <CreateMeetingModal
-          onClose={() => setShowCreate(false)}
-          onCreated={fetchMeetings}
-          userId={userId}
-        />
+        <CreateMeetingModal onClose={() => setShowCreate(false)} onCreated={fetchMeetings} />
       )}
     </>
   );
 }
 
-export default function MeetingsPage() {
+export default function DemoMeetingsPage() {
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
       <Suspense fallback={<div className="skeleton" style={{ flex: 1 }} />}>

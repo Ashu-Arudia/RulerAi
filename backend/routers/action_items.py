@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -9,9 +9,22 @@ from models import ActionItemCreate, ActionItemUpdate
 router = APIRouter(prefix="/action-items", tags=["action-items"])
 
 
+def _get_scoped_meeting(db: Session, meeting_id: int, user_id: Optional[str]):
+    query = db.query(Meeting).filter(Meeting.id == meeting_id)
+    if user_id:
+        query = query.filter(Meeting.user_id == user_id)
+    else:
+        query = query.filter(Meeting.user_id == None)  # noqa: E711
+    return query.first()
+
+
 @router.get("/meeting/{meeting_id}", response_model=List[dict])
-def get_action_items(meeting_id: int, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def get_action_items(
+    meeting_id: int,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    meeting = _get_scoped_meeting(db, meeting_id, x_user_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -25,8 +38,13 @@ def get_action_items(meeting_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/meeting/{meeting_id}", response_model=dict, status_code=201)
-def create_action_item(meeting_id: int, data: ActionItemCreate, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def create_action_item(
+    meeting_id: int,
+    data: ActionItemCreate,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    meeting = _get_scoped_meeting(db, meeting_id, x_user_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -44,10 +62,20 @@ def create_action_item(meeting_id: int, data: ActionItemCreate, db: Session = De
 
 
 @router.put("/{item_id}", response_model=dict)
-def update_action_item(item_id: int, data: ActionItemUpdate, db: Session = Depends(get_db)):
+def update_action_item(
+    item_id: int,
+    data: ActionItemUpdate,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
     item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Action item not found")
+
+    # Verify the meeting belongs to the right scope
+    meeting = _get_scoped_meeting(db, item.meeting_id, x_user_id)
+    if not meeting:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     if data.text is not None:
         item.text = data.text
@@ -65,10 +93,19 @@ def update_action_item(item_id: int, data: ActionItemUpdate, db: Session = Depen
 
 
 @router.delete("/{item_id}", status_code=204)
-def delete_action_item(item_id: int, db: Session = Depends(get_db)):
+def delete_action_item(
+    item_id: int,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
     item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Action item not found")
+
+    meeting = _get_scoped_meeting(db, item.meeting_id, x_user_id)
+    if not meeting:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     db.delete(item)
     db.commit()
 

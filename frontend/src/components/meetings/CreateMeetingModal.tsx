@@ -7,11 +7,13 @@ import { useToast } from '@/components/ui/ToastProvider';
 interface CreateMeetingModalProps {
   onClose: () => void;
   onCreated: () => void;
+  /** Pass the Google user ID to scope the meeting to the auth'd user. Omit for demo. */
+  userId?: string | null;
 }
 
 const COLORS = ['#6938ef', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316'];
 
-export default function CreateMeetingModal({ onClose, onCreated }: CreateMeetingModalProps) {
+export default function CreateMeetingModal({ onClose, onCreated, userId }: CreateMeetingModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -49,7 +51,7 @@ export default function CreateMeetingModal({ onClose, onCreated }: CreateMeeting
         thumbnail_color: form.thumbnail_color,
         channel: form.channel,
         transcript_text: form.transcript_text || undefined,
-      });
+      }, userId);
 
       toast('Meeting created successfully!', 'success');
       onCreated();

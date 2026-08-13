@@ -1,6 +1,6 @@
 import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from datetime import datetime
@@ -9,6 +9,16 @@ from database import get_db, Meeting, TranscriptLine, Summary, ActionItem, Meeti
 from models import MeetingCreate, MeetingUpdate, MeetingOut, MeetingDetailOut, SummaryOut, ActionItemOut
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
+
+
+def _scope(query, user_id: Optional[str]):
+    """
+    Demo requests (no X-User-Id header) → user_id IS NULL (seeded demo data).
+    Authenticated requests → filter by their google_id.
+    """
+    if user_id:
+        return query.filter(Meeting.user_id == user_id)
+    return query.filter(Meeting.user_id == None)  # noqa: E711
 
 
 def _meeting_to_out(meeting: Meeting) -> dict:
@@ -47,9 +57,10 @@ def list_meetings(
     search: Optional[str] = Query(None),
     channel: Optional[str] = Query(None),
     sort: str = Query("date_desc"),
+    x_user_id: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Meeting)
+    query = _scope(db.query(Meeting), x_user_id)
 
     if search:
         search_term = f"%{search}%"
@@ -78,8 +89,13 @@ def list_meetings(
 
 
 @router.get("/{meeting_id}", response_model=dict)
-def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def get_meeting(
+    meeting_id: int,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    query = _scope(db.query(Meeting), x_user_id)
+    meeting = query.filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -113,8 +129,15 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=dict, status_code=201)
-def create_meeting(meeting_data: MeetingCreate, db: Session = Depends(get_db)):
+def create_meeting(
+    meeting_data: MeetingCreate,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    # Demo users cannot create meetings that persist — they go into demo space.
+    # Auth'd users get their own row.
     meeting = Meeting(
+        user_id=x_user_id if x_user_id else None,
         title=meeting_data.title,
         date=meeting_data.date,
         duration_seconds=meeting_data.duration_seconds,
@@ -128,7 +151,6 @@ def create_meeting(meeting_data: MeetingCreate, db: Session = Depends(get_db)):
     db.add(meeting)
     db.flush()
 
-    # Parse and add transcript if provided
     if meeting_data.transcript_text:
         lines = _parse_transcript_text(meeting_data.transcript_text, meeting.id)
         for line in lines:
@@ -140,8 +162,14 @@ def create_meeting(meeting_data: MeetingCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{meeting_id}", response_model=dict)
-def update_meeting(meeting_id: int, update_data: MeetingUpdate, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def update_meeting(
+    meeting_id: int,
+    update_data: MeetingUpdate,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    query = _scope(db.query(Meeting), x_user_id)
+    meeting = query.filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -167,8 +195,13 @@ def update_meeting(meeting_id: int, update_data: MeetingUpdate, db: Session = De
 
 
 @router.delete("/{meeting_id}", status_code=204)
-def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+def delete_meeting(
+    meeting_id: int,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    query = _scope(db.query(Meeting), x_user_id)
+    meeting = query.filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
     db.delete(meeting)
@@ -179,18 +212,18 @@ def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
 async def upload_transcript(
     meeting_id: int,
     file: UploadFile = File(...),
+    x_user_id: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ):
-    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    query = _scope(db.query(Meeting), x_user_id)
+    meeting = query.filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     content = await file.read()
     text = content.decode("utf-8", errors="ignore")
 
-    # Delete existing transcript lines
     db.query(TranscriptLine).filter(TranscriptLine.meeting_id == meeting_id).delete()
-
     lines = _parse_transcript_text(text, meeting_id)
     for line in lines:
         db.add(line)
@@ -200,12 +233,6 @@ async def upload_transcript(
 
 
 def _parse_transcript_text(text: str, meeting_id: int) -> List[TranscriptLine]:
-    """Parse plain text transcript into TranscriptLine objects.
-    Supports formats:
-    - [00:01:23] Speaker Name: Text
-    - Speaker Name (00:01:23): Text
-    - Speaker Name: Text
-    """
     import re
     lines = []
     current_time = 0.0
@@ -215,13 +242,12 @@ def _parse_transcript_text(text: str, meeting_id: int) -> List[TranscriptLine]:
         if not raw_line:
             continue
 
-        # Pattern 1: [HH:MM:SS] or [MM:SS] timestamp at start
         m = re.match(r"^\[(\d+):(\d+)(?::(\d+))?\]\s*([^:]+):\s*(.+)$", raw_line)
         if m:
             groups = m.groups()
-            if groups[2]:  # HH:MM:SS
+            if groups[2]:
                 start = int(groups[0]) * 3600 + int(groups[1]) * 60 + float(groups[2])
-            else:  # MM:SS
+            else:
                 start = int(groups[0]) * 60 + float(groups[1])
             speaker = groups[3].strip()
             text_content = groups[4].strip()
@@ -232,7 +258,6 @@ def _parse_transcript_text(text: str, meeting_id: int) -> List[TranscriptLine]:
             current_time = start + 10.0
             continue
 
-        # Pattern 2: Speaker: Text (no timestamp)
         m = re.match(r"^([A-Z][^:]{2,40}):\s*(.+)$", raw_line)
         if m:
             speaker = m.group(1).strip()
