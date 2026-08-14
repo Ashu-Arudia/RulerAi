@@ -25,22 +25,19 @@ export default function DemoTourFloatingBtn() {
         background: 'linear-gradient(135deg, #6938ef 0%, #7c3aed 100%)',
         color: '#ffffff',
         border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 8px 28px rgba(105, 56, 239, 0.45), 0 0 0 1px rgba(105, 56, 239, 0.2)',
+        boxShadow: '0 8px 28px rgba(105, 56, 239, 0.45)',
         fontSize: '0.84rem',
         fontWeight: 700,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
-        e.currentTarget.style.boxShadow = '0 12px 32px rgba(105, 56, 239, 0.6)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-        e.currentTarget.style.boxShadow = '0 8px 28px rgba(105, 56, 239, 0.45)';
+        transition: 'all 0.2s ease',
       }}
     >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="3" strokeLinecap="round" />
+      </svg>
       <span>Start Guided Tour</span>
     </button>
   );

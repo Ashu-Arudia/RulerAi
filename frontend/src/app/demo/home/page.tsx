@@ -1,76 +1,36 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
-import { upsertUser, getMeetings, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
+import { getMeetings, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
 import { Meeting } from '@/lib/types';
-import { useToast } from '@/components/ui/ToastProvider';
 
-export default function HomePage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const { toast } = useToast();
-
+export default function DemoHomePage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
-  const userId = (session?.user as { id?: string })?.id;
-
-  // Redirect unauthenticated visitors back to landing
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/');
-    }
-  }, [status, router]);
-
-  const loadWorkspaceData = useCallback(async () => {
-    if (!userId) return;
+  const loadData = async () => {
     setLoading(true);
     try {
-      const user = session?.user as { id: string; email?: string | null; name?: string | null; image?: string | null };
-      if (user) {
-        await upsertUser({
-          google_id: user.id,
-          email: user.email ?? '',
-          name: user.name ?? undefined,
-          picture: user.image ?? undefined,
-        });
-      }
-      const data = await getMeetings({}, userId);
+      const data = await getMeetings({});
       setMeetings(data);
     } catch {
-      toast('Failed to load workspace data', 'error');
+      setMeetings([]);
     } finally {
       setLoading(false);
     }
-  }, [userId, session, toast]);
+  };
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      loadWorkspaceData();
-    }
-  }, [status, loadWorkspaceData]);
+    loadData();
+  }, []);
 
-  if (status === 'loading') {
-    return (
-      <div className="page-content flex items-center justify-center flex-1 h-full">
-        <div className="text-center">
-          <div className="skeleton w-12 h-12 rounded-full mx-auto mb-3" />
-          <div className="skeleton w-48 h-4 rounded-lg mx-auto" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) return null;
-
-  const user = session.user as { id: string; email?: string | null; name?: string | null; image?: string | null };
-  const firstName = user.name?.split(' ')[0] ?? 'there';
+  const firstName = 'Alex';
+  const userName = 'Alex Turner';
+  const userEmail = 'alex.turner@scalerai.demo';
 
   const totalMeetings = meetings.length;
   const totalActionItems = meetings.reduce((acc, m) => acc + (m.action_items?.length || 0), 0);
@@ -90,7 +50,7 @@ export default function HomePage() {
       <div className="topbar">
         <div className="topbar-left">
           <span className="channel-badge">
-            Workspace Hub
+            Workspace Hub (Demo)
           </span>
           <span className="date-badge">
             {todayDate}
@@ -120,7 +80,7 @@ export default function HomePage() {
           <div className="home-hero-content">
             <div className="home-status-badge">
               <span className="home-status-dot" />
-              Live Workspace Connected
+              Live Demo Workspace Connected
             </div>
             <h1 className="home-hero-title">
               Welcome back, {firstName}! 👋
@@ -131,20 +91,12 @@ export default function HomePage() {
           </div>
 
           <div className="home-user-profile-badge">
-            {user.image ? (
-              <img
-                src={user.image}
-                alt={user.name ?? 'User'}
-                className="home-user-avatar-img"
-              />
-            ) : (
-              <div className="home-user-avatar-initials">
-                {firstName[0]}
-              </div>
-            )}
+            <div className="home-user-avatar-initials">
+              AT
+            </div>
             <div>
-              <div className="home-user-name">{user.name}</div>
-              <div className="home-user-email">{user.email}</div>
+              <div className="home-user-name">{userName}</div>
+              <div className="home-user-email">{userEmail}</div>
             </div>
           </div>
         </div>
@@ -202,7 +154,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="home-action-card"
+              className="home-action-card text-left cursor-pointer"
             >
               <div className="home-action-icon brand">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -213,7 +165,7 @@ export default function HomePage() {
               <div className="home-action-desc">Paste transcript notes or upload audio files</div>
             </button>
 
-            <Link href="/meetings" className="home-action-card">
+            <Link href="/demo/meetings" className="home-action-card">
               <div className="home-action-icon info">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
@@ -224,7 +176,7 @@ export default function HomePage() {
               <div className="home-action-desc">Browse all past recordings & AI notes</div>
             </Link>
 
-            <Link href="/askfred" className="home-action-card">
+            <Link href="/demo/askfred" className="home-action-card">
               <div className="home-action-icon purple">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -234,7 +186,7 @@ export default function HomePage() {
               <div className="home-action-desc">Chat & query intelligence across meetings</div>
             </Link>
 
-            <Link href="/integrations" className="home-action-card">
+            <Link href="/demo/integrations" className="home-action-card">
               <div className="home-action-icon success">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
@@ -251,7 +203,7 @@ export default function HomePage() {
         <div className="home-section">
           <div className="home-section-header">
             <h2 className="home-section-title">Recent Meetings</h2>
-            <Link href="/meetings" className="home-link">View All →</Link>
+            <Link href="/demo/meetings" className="home-link">View All →</Link>
           </div>
 
           {loading ? (
@@ -284,7 +236,7 @@ export default function HomePage() {
                 return (
                   <Link
                     key={meeting.id}
-                    href={`/meetings/${meeting.id}`}
+                    href={`/demo/meetings/${meeting.id}`}
                     className="home-recent-item group"
                   >
                     <div className="home-recent-left">
@@ -340,14 +292,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <button
-            id="home-signout-btn"
-            type="button"
-            onClick={() => signOut({ callbackUrl: '/' })}
+          <Link
+            href="/"
             className="home-signout-btn"
           >
-            Sign out
-          </button>
+            Back to Landing
+          </Link>
         </div>
 
       </div>
@@ -355,8 +305,7 @@ export default function HomePage() {
       {showCreate && (
         <CreateMeetingModal
           onClose={() => setShowCreate(false)}
-          onCreated={loadWorkspaceData}
-          userId={userId}
+          onCreated={loadData}
         />
       )}
     </div>

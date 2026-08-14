@@ -22,13 +22,13 @@ export default function ThemeToggle({ variant = 'pill' }: ThemeToggleProps) {
         type="button"
         onClick={toggleTheme}
         className="sidebar-nav-item"
-        title={`Switch to ${isDark ? 'Light' : 'Dark'} Theme`}
-        id="theme-toggle-icon"
         style={{
           background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
           border: 'none',
           cursor: 'pointer',
         }}
+        title={`Switch to ${isDark ? 'Light' : 'Dark'} Theme`}
+        id="theme-toggle-icon"
       >
         {isDark ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
@@ -57,6 +57,7 @@ export default function ThemeToggle({ variant = 'pill' }: ThemeToggleProps) {
       type="button"
       onClick={toggleTheme}
       id="theme-toggle-pill"
+      className="topbar-btn topbar-btn-ghost"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -64,14 +65,13 @@ export default function ThemeToggle({ variant = 'pill' }: ThemeToggleProps) {
         padding: '6px 12px',
         borderRadius: 99,
         border: '1px solid var(--color-border)',
-        background: 'var(--color-surface-2)',
+        background: 'var(--color-surface)',
         color: 'var(--color-text-primary)',
         fontSize: '0.78rem',
         fontWeight: 600,
         cursor: 'pointer',
         fontFamily: 'inherit',
         transition: 'all 0.2s ease',
-        boxShadow: 'var(--shadow-sm)',
       }}
       title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
     >
