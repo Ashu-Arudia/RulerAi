@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ─── CSS Variables / Design System ────────────────────────────────────────── */
-:root {
+:root, [data-theme="light"] {
   --color-brand: #6938ef;
   --color-brand-hover: #5a2de0;
   --color-brand-light: #ede9fe;
@@ -11,12 +11,13 @@
   --color-surface: #ffffff;
   --color-surface-2: #f9fafb;
   --color-surface-3: #f3f4f6;
+  --color-surface-hover: #f3f4f6;
 
   --color-border: #e5e7eb;
   --color-border-strong: #d1d5db;
 
   --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
+  --color-text-secondary: #4b5563;
   --color-text-tertiary: #9ca3af;
   --color-text-inverse: #ffffff;
 
@@ -45,8 +46,43 @@
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --transition: 0.15s ease;
-  --transition-slow: 0.3s ease;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --color-brand: #8b5cf6;
+  --color-brand-hover: #7c3aed;
+  --color-brand-light: rgba(139, 92, 246, 0.22);
+  --color-brand-muted: rgba(139, 92, 246, 0.14);
+
+  --color-bg: #0b0914;
+  --color-surface: #141122;
+  --color-surface-2: #1b172d;
+  --color-surface-3: #24203a;
+  --color-surface-hover: #292443;
+
+  --color-border: #2c2744;
+  --color-border-strong: #3f3960;
+
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #a78bfa;
+  --color-text-tertiary: #9ca3af;
+  --color-text-inverse: #0b0914;
+
+  --color-success: #10b981;
+  --color-success-light: rgba(16, 185, 129, 0.18);
+  --color-warning: #f59e0b;
+  --color-warning-light: rgba(245, 158, 11, 0.18);
+  --color-error: #ef4444;
+  --color-error-light: rgba(239, 68, 68, 0.18);
+  --color-info: #3b82f6;
+  --color-info-light: rgba(59, 130, 246, 0.18);
+
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 8px -1px rgba(0,0,0,0.6);
+  --shadow-lg: 0 12px 20px -3px rgba(0,0,0,0.7);
+  --shadow-xl: 0 24px 32px -5px rgba(0,0,0,0.8);
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────────── */

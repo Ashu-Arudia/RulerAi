@@ -9,6 +9,7 @@ import { signIn } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MeetingsSidebar from '@/components/layout/MeetingsSidebar';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
+import ThemeToggle from '@/components/common/ThemeToggle';
 import { getMeetings, deleteMeeting, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
 import { Meeting } from '@/lib/types';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -126,6 +127,7 @@ function MeetingsContent() {
           </div>
           <div className="topbar-spacer" />
           <div className="topbar-actions">
+            <ThemeToggle variant="pill" />
             <button
               id="demo-new-meeting-btn"
               className="topbar-btn topbar-btn-primary"

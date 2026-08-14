@@ -44,6 +44,8 @@ const NAV_ITEMS = [
   },
 ];
 
+import ThemeToggle from '@/components/common/ThemeToggle';
+
 export default function DemoSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -99,6 +101,9 @@ export default function DemoSidebar() {
       ))}
 
       <div className="sidebar-spacer" />
+
+      {/* Theme Switcher Icon */}
+      <ThemeToggle variant="icon" />
 
       {/* Tour Guide Button */}
       <button

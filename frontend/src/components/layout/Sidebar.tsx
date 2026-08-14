@@ -99,6 +99,8 @@ const BOTTOM_ITEMS = [
   },
 ];
 
+import ThemeToggle from '@/components/common/ThemeToggle';
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -135,6 +137,9 @@ export default function Sidebar() {
       ))}
 
       <div className="sidebar-spacer" />
+
+      {/* Theme Switcher Icon */}
+      <ThemeToggle variant="icon" />
 
       {/* Bottom nav */}
       {BOTTOM_ITEMS.map((item) => (

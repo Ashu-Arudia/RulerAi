@@ -26,6 +26,13 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
     spotlightPadding: 6,
   },
   {
+    targetId: 'theme-toggle-icon',
+    title: 'Switch Light / Dark Theme',
+    message: 'Click the Theme Switcher in the sidebar or top bar anytime to toggle between Light Mode and Dark Mode!',
+    position: 'right',
+    spotlightPadding: 6,
+  },
+  {
     targetId: 'demo-new-meeting-btn',
     title: 'Click "+ New Meeting"',
     message: 'Click "+ New Meeting" to open the creation modal where you can paste raw notes or upload transcripts.',
