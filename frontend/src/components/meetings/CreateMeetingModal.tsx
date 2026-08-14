@@ -312,6 +312,7 @@ export default function CreateMeetingModal({ onClose, onCreated, userId }: Creat
                 ] as { id: TranscriptTab; label: string }[]).map((tab) => (
                   <button
                     key={tab.id}
+                    id={`tour-${tab.id}-tab`}
                     type="button"
                     onClick={() => setTranscriptTab(tab.id)}
                     style={{

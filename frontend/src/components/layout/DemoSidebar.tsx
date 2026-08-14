@@ -89,6 +89,7 @@ export default function DemoSidebar() {
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.id}
+          id={`demo-nav-${item.id}`}
           href={item.href}
           className={`sidebar-nav-item ${isActive(item.href) ? 'active' : ''}`}
         >

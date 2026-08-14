@@ -6,34 +6,76 @@ export interface TourStep {
   message: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
   spotlightPadding?: number;
+  asciiBox?: string;
+  autoOpenModal?: boolean;
 }
 
 export const DEMO_TOUR_STEPS: TourStep[] = [
   {
     targetId: null,
-    title: 'Welcome to Ruler AI \u{1F44B}',
-    message: 'This is a guided demo. We will walk you through everything — meetings, transcripts, and AI-powered analysis.',
+    title: 'Welcome to Ruler AI 👋',
+    message: 'This guided tour will show you how to create a meeting, clean raw transcript text with AI, and view auto-generated AI notes.',
     position: 'bottom',
+    asciiBox: `┌─────────────────────┐\n│  Click "Meetings"   │\n│  to view your       │\n│  meeting history.   │\n└─────────▼───────────┘\n      [Meetings]`,
+  },
+  {
+    targetId: 'demo-nav-meetings',
+    title: '📁 Meeting History',
+    message: 'Click "Meetings" anytime in the sidebar to view your meeting history, sample recordings, and uploads.',
+    position: 'right',
+    spotlightPadding: 6,
   },
   {
     targetId: 'demo-new-meeting-btn',
-    title: '\u{1F4C5} Create a Meeting',
-    message: 'Click "New Meeting" to add your first entry. You can paste a transcript, pick a sample, or upload a file.',
+    title: '➕ Click "+ New Meeting"',
+    message: 'Click "+ New Meeting" to open the creation modal where you can paste raw notes or upload transcripts.',
     position: 'bottom',
     spotlightPadding: 8,
   },
   {
-    targetId: 'demo-meetings-search',
-    title: '\u{1F50D} Search Meetings',
-    message: 'Use the search bar to quickly find meetings by title, host, or keyword.',
+    targetId: 'meeting-title',
+    title: '✏️ Enter Meeting Title',
+    message: 'Type a name for your meeting (e.g., "Q4 Roadmap Strategy Sync").',
     position: 'bottom',
-    spotlightPadding: 8,
+    spotlightPadding: 6,
+    autoOpenModal: true,
   },
   {
-    targetId: 'demo-meetings-sort',
-    title: '\u{1F4CA} Sort & Filter',
-    message: 'Sort meetings by date, title, or duration — perfect for large workspaces.',
+    targetId: 'tour-paste-tab',
+    title: '✍️ Paste Raw Notes',
+    message: 'Switch to "Paste Text" tab and paste your raw transcript text (e.g., "10:02 AM - Alex: Good morning team...").',
+    position: 'top',
+    spotlightPadding: 6,
+    autoOpenModal: true,
+  },
+  {
+    targetId: 'clean-with-ai-btn',
+    title: '🪄 Click "Clean with AI"',
+    message: 'Click "Clean with AI" to let Groq LLM filter out filler words, normalize timestamps, and auto-detect participants!',
+    position: 'top',
+    spotlightPadding: 8,
+    autoOpenModal: true,
+  },
+  {
+    targetId: 'create-meeting-submit',
+    title: '🚀 Create Meeting',
+    message: 'Click "+ Create Meeting" to save your meeting into your workspace.',
+    position: 'top',
+    spotlightPadding: 8,
+    autoOpenModal: true,
+  },
+  {
+    targetId: 'tour-first-meeting-card',
+    title: '🔍 Open Your Meeting',
+    message: 'Click on your newly created meeting card to view its interactive transcript and AI insights.',
     position: 'bottom',
+    spotlightPadding: 10,
+  },
+  {
+    targetId: 'tour-notes-panel',
+    title: '✨ AI-Generated Summary & Intelligence',
+    message: 'Ruler AI automatically generates an Executive Summary, Key Topics, Timed Outline Chapters, and Speaker Action Items!',
+    position: 'right',
     spotlightPadding: 8,
   },
 ];

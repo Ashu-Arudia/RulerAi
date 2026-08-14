@@ -1,6 +1,7 @@
 import DemoSidebar from '@/components/layout/DemoSidebar';
 import QueryProvider from '@/components/providers/QueryProvider';
 import DemoTour from '@/components/demo/DemoTour';
+import DemoTourFloatingBtn from '@/components/demo/DemoTourFloatingBtn';
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
       <DemoTour />
+      <DemoTourFloatingBtn />
     </QueryProvider>
   );
 }

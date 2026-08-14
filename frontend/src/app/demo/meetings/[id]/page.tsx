@@ -651,7 +651,7 @@ export default function MeetingDetailPage() {
       {/* Split Pane */}
       <div className="split-pane" style={{ flex: 1 }}>
         {/* Left: Notes + Media Player */}
-        <div className="split-pane-left">
+        <div className="split-pane-left" id="tour-notes-panel">
           <div className="tab-bar">
             <div className={`tab-item ${leftTab === 'notes' ? 'active' : ''}`} onClick={() => setLeftTab('notes')}>
               Notes

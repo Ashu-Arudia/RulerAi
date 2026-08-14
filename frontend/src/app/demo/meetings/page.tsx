@@ -196,7 +196,7 @@ function MeetingsContent() {
               </div>
             ) : (
               <div className="meetings-grid">
-                {meetings.map((meeting) => {
+                {meetings.map((meeting, idx) => {
                   const initials = getInitials(meeting.title);
                   const date = formatRelativeDate(meeting.date);
                   const duration = formatDuration(meeting.duration_seconds);
@@ -204,7 +204,11 @@ function MeetingsContent() {
 
                   return (
                     <div key={meeting.id} style={{ position: 'relative' }}>
-                      <Link href={`/demo/meetings/${meeting.id}`} className="meeting-card">
+                      <Link
+                        href={`/demo/meetings/${meeting.id}`}
+                        className="meeting-card"
+                        id={idx === 0 ? 'tour-first-meeting-card' : undefined}
+                      >
                         <div className="meeting-card-color" style={{ background: meeting.thumbnail_color }}>
                           {initials}
                         </div>
