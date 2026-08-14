@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { MeetingDetail } from '@/lib/types';
+import { askFredChat } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -18,6 +20,9 @@ const SAMPLE_PROMPTS = [
 ];
 
 export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | null }) {
+  const { data: session } = useSession();
+  const userId = (session?.user as { id?: string })?.id || null;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -31,7 +36,7 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isTyping) return;
 
@@ -46,12 +51,35 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
     if (!textToSend) setInput('');
     setIsTyping(true);
 
-    // Generate response based on transcript and prompt
-    setTimeout(() => {
+    try {
+      // 1. Attempt live LLM Backend call
+      const res = await askFredChat(query, meeting?.id, userId);
+      const fredMsg: Message = {
+        id: String(Date.now() + 1),
+        sender: 'fred',
+        text: res.answer,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, fredMsg]);
+    } catch {
+      // 2. Client-side Intelligent Fallback if offline/unreachable
       let answer = '';
       const qLower = query.toLowerCase();
 
-      if (qLower.includes('decision') || qLower.includes('key decision')) {
+      // Check if user is asking about a specific person (e.g., "what is rachel talking about")
+      const words = query.split(/\s+/);
+      let matchedSpeakerLines: string[] = [];
+      if (meeting?.transcript_lines) {
+        matchedSpeakerLines = meeting.transcript_lines
+          .filter((l) =>
+            words.some((w) => w.length > 2 && l.speaker.toLowerCase().includes(w.toLowerCase())),
+          )
+          .map((l) => `• **${l.speaker}**: ${l.text}`);
+      }
+
+      if (matchedSpeakerLines.length > 0) {
+        answer = `Here is what was discussed in **${meeting?.title || 'this meeting'}**:\n\n${matchedSpeakerLines.slice(0, 5).join('\n')}`;
+      } else if (qLower.includes('decision') || qLower.includes('key decision')) {
         answer = meeting?.summary?.overview
           ? `Based on the discussion, key decisions included:\n• Finalizing implementation approach.\n• Setting sprint deadlines for deliverables.\n• Assigning technical owners.`
           : `Across your workspace meetings, teams consistently prioritize architecture reviews before feature rollouts and enforce clean pull request workflows.`;
@@ -61,12 +89,10 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
               .map((a) => `• ${a.text} ${a.assignee ? `(Assigned to: ${a.assignee})` : ''}`)
               .join('\n')}`
           : `All assigned action items are tracked in your workspace board with strict ownership and target completion dates.`;
-      } else if (qLower.includes('risk') || qLower.includes('blocker')) {
-        answer = `Potential risks highlighted during the conversation:\n• Ensuring dark mode dynamic CSS variable overrides apply cleanly across all legacy modals.\n• Testing fallback behaviors when API endpoints experience micro-latency.`;
       } else {
         answer = meeting?.summary?.overview
           ? `Here is what I found regarding your query in **${meeting.title}**:\n\n${meeting.summary.overview}\n\nKey Topics covered: ${meeting.summary.key_topics.join(', ')}.`
-          : `Fred analyzed your request across all indexed workspace transcripts. All transcripts are parsed with semantic keyword matching and Groq LLM embeddings.`;
+          : `Fred analyzed your request across all indexed workspace transcripts.`;
       }
 
       const fredMsg: Message = {
@@ -75,10 +101,10 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
         text: answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-
       setMessages((prev) => [...prev, fredMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (

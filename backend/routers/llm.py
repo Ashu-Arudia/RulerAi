@@ -2,8 +2,10 @@ import json
 import os
 import re
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from database import get_db, Meeting, TranscriptLine, Summary
 
 router = APIRouter(prefix="/transcripts", tags=["llm"])
 
@@ -586,5 +588,138 @@ def _fallback_meeting_analysis(title: str, participants: List[str], transcript_l
         "chapters": chapters,
         "action_items": action_items
     }
+
+
+class ChatRequest(BaseModel):
+    query: str
+    meeting_id: Optional[int] = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: Optional[List[str]] = []
+
+
+@router.post("/chat", response_model=ChatResponse)
+def ask_fred_chat(
+    req: ChatRequest,
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    query = req.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="query is required")
+
+    transcript_context = ""
+    meeting_title = "Workspace Meetings"
+
+    if req.meeting_id:
+        m_query = db.query(Meeting).filter(Meeting.id == req.meeting_id)
+        if x_user_id:
+            m_query = m_query.filter(Meeting.user_id == x_user_id)
+        else:
+            m_query = m_query.filter(Meeting.user_id == None)  # noqa: E711
+        meeting = m_query.first()
+
+        if meeting:
+            meeting_title = meeting.title
+            lines = (
+                db.query(TranscriptLine)
+                .filter(TranscriptLine.meeting_id == meeting.id)
+                .order_by(TranscriptLine.start_time)
+                .all()
+            )
+            transcript_context = "\n".join([f"{l.speaker}: {l.text}" for l in lines])
+    else:
+        # Global query across meetings
+        m_query = db.query(Meeting)
+        if x_user_id:
+            m_query = m_query.filter(Meeting.user_id == x_user_id)
+        else:
+            m_query = m_query.filter(Meeting.user_id == None)  # noqa: E711
+        meetings = m_query.limit(5).all()
+        m_ids = [m.id for m in meetings]
+
+        lines = (
+            db.query(TranscriptLine)
+            .filter(TranscriptLine.meeting_id.in_(m_ids))
+            .limit(100)
+            .all()
+        )
+        transcript_context = "\n".join([f"[{l.speaker}]: {l.text}" for l in lines])
+
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if api_key and api_key != "your_groq_api_key_here":
+        try:
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            prompt = f"""You are Fred, an AI meeting assistant. Answer the user's question accurately based on the transcript context provided below.
+
+Context ({meeting_title}):
+{transcript_context[:6000]}
+
+User Question: {query}
+
+Instructions:
+- Provide a direct, concise, and helpful answer.
+- If asked what a specific person (e.g., Rachel, Sarah, Alex) is talking about, highlight their exact points and discussion topics from the transcript.
+- Do not invent facts not present in the transcript.
+"""
+            models_to_try = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192"]
+            with httpx.Client(timeout=15.0) as client:
+                for model_name in models_to_try:
+                    try:
+                        body = {
+                            "model": model_name,
+                            "messages": [
+                                {"role": "system", "content": "You are Fred, an AI meeting assistant that answers questions based on meeting transcripts."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            "temperature": 0.2,
+                        }
+                        res = client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body)
+                        if res.status_code == 200:
+                            ans = res.json()["choices"][0]["message"]["content"].strip()
+                            if ans:
+                                return ChatResponse(answer=ans)
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+
+    # Intelligent Fallback matching
+    q_words = [w.lower() for w in re.findall(r'\w+', query) if len(w) > 2]
+    matching_lines = []
+    
+    # Check for speaker matches (e.g., "rachel")
+    speaker_matches = []
+    for line_text in transcript_context.splitlines():
+        if ":" in line_text:
+            spk, txt = line_text.split(":", 1)
+            spk_lower = spk.lower()
+            for qw in q_words:
+                if qw in spk_lower:
+                    speaker_matches.append(f"• **{spk.strip()}**: {txt.strip()}")
+                elif qw in txt.lower():
+                    matching_lines.append(f"• **{spk.strip()}**: {txt.strip()}")
+
+    if speaker_matches:
+        formatted = "\n".join(speaker_matches[:5])
+        return ChatResponse(
+            answer=f"Here is what **{q_words[0].capitalize()}** discussed in **{meeting_title}**:\n\n{formatted}"
+        )
+    elif matching_lines:
+        formatted = "\n".join(matching_lines[:4])
+        return ChatResponse(
+            answer=f"Here are the relevant discussion points in **{meeting_title}** regarding your query:\n\n{formatted}"
+        )
+
+    return ChatResponse(
+        answer=f"I checked the transcripts for **{meeting_title}**. Here is the key summary:\n\n{transcript_context[:300]}..."
+    )
+
 
 

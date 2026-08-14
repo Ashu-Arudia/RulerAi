@@ -224,6 +224,24 @@ export function formatDuration(seconds: number): string {
   return `${s}s`;
 }
 
+export async function askFredChat(
+  query: string,
+  meetingId?: number | null,
+  userId?: string | null,
+): Promise<{ answer: string; sources?: string[] }> {
+  return request<{ answer: string; sources?: string[] }>(
+    '/transcripts/chat',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        query,
+        meeting_id: meetingId ?? null,
+      }),
+    },
+    userId,
+  );
+}
+
 export function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
