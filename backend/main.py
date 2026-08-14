@@ -17,9 +17,20 @@ app = FastAPI(
     version="1.0.0",
 )
 
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://ruler-ai.vercel.app",
+]
+
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000","https://ruler-ai.vercel.app"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*", "X-User-Id"],
@@ -46,11 +57,19 @@ def startup_event():
 
 
 @app.get("/")
+@app.get("/health")
 def root():
-    return {"message": "ScalerAI API", "version": "1.0.0", "status": "healthy"}
+    return {"message": "RulerAI API", "version": "1.0.0", "status": "healthy"}
 
 
 @app.get("/search")
 def global_search(q: str, db=None):
     """Global search endpoint — delegates to transcripts router."""
     return {"query": q, "message": "Use /transcripts/search/global?q=<term>"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+
