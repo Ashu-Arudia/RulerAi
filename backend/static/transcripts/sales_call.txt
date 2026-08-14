@@ -1,0 +1,22 @@
+[00:00] Rachel Kim: Hi Tom, thanks for joining. I know you've been evaluating several note-taking solutions for Acme Corp.
+[00:08] Tom Bradley: Absolutely Rachel. We've been looking at this space for about three months. Our current setup is a mess — people take notes in random docs, action items never get followed up on.
+[00:22] Rachel Kim: That's super common. How many people are in your team that would use this?
+[00:27] Tom Bradley: We're about 140 engineers and 30 product managers. So roughly 170 seats to start, potentially up to 250 if we roll out to sales.
+[00:38] Rachel Kim: Perfect. And are meetings primarily internal or a mix of customer-facing?
+[00:44] Tom Bradley: About 60% internal — standups, design reviews, retrospectives. The other 40% are customer calls and demos.
+[00:54] Rachel Kim: Great. For the customer-facing ones, is GDPR compliance critical? A lot of our enterprise clients care about data residency.
+[01:04] Tom Bradley: Very much so. We're EU-based. All data must stay in EU. The legal team won't approve anything that processes data in US-only data centers.
+[01:16] Rachel Kim: We've got you covered. We offer EU-only data residency on our Enterprise plan — Frankfurt data center, SOC 2 Type II certified, GDPR DPA included.
+[01:27] Tom Bradley: Excellent. That's a box-checker. What about integrations? We're on Slack and linear for project management.
+[01:36] Rachel Kim: Both are native integrations. Action items from meetings can be auto-created as Linear issues with assignees and due dates populated directly from our AI extraction.
+[01:48] Tom Bradley: That's exactly what we need. How accurate is the action item extraction? We tried another tool and it was pulling noise.
+[01:58] Rachel Kim: In our benchmark on 500 meeting recordings, we achieve 87% precision and 79% recall. We also allow users to edit and confirm before pushing to Linear, so your team is always in control.
+[02:12] Tom Bradley: That's a significant improvement over what we tested. What does pricing look like for 170 seats?
+[02:19] Rachel Kim: At 170 seats on Enterprise, you're looking at roughly $24 per seat per month billed annually. That comes to about $4,080 per month. Includes unlimited meeting recordings, all AI features, EU data residency, and dedicated support.
+[02:37] Tom Bradley: That's within our budget range. We have a procurement deadline of September 30th for this quarter's purchases. Can we get a proof of concept set up for 10 users by end of next week?
+[02:50] Rachel Kim: Absolutely. I'll set up a free trial environment for your team today. I'll also block time with our solutions engineer to do a custom onboarding session. Does Thursday morning work for you?
+[03:02] Tom Bradley: Thursday at 9am CET works perfectly.
+[03:06] Rachel Kim: Perfect, I'll send an invite. One last thing — would a reference call with Fintech AG who's a similar-sized EU customer help your evaluation?
+[03:16] Tom Bradley: That would be very helpful actually. They're in a similar regulatory environment to us.
+[03:22] Rachel Kim: I'll arrange that. Tom, this sounds like a great fit. We'll take good care of you.
+[03:28] Tom Bradley: Looking forward to it Rachel. Thanks for the thorough rundown.

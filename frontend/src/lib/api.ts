@@ -153,7 +153,54 @@ export async function globalSearch(
   );
 }
 
+// ─── LLM / Transcript Cleaning ───────────────────────────────────────────────
+
+export interface SampleTranscript {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  participants: string[];
+  filename: string;
+}
+
+export interface CleanedLine {
+  speaker: string;
+  text: string;
+  start_time: number;
+  end_time: number;
+}
+
+export interface CleanTranscriptResult {
+  cleaned_lines: CleanedLine[];
+  summary_hint: string;
+  participant_names: string[];
+}
+
+export async function getSampleTranscripts(): Promise<SampleTranscript[]> {
+  const res = await fetch(`${BASE_URL}/transcripts/samples`);
+  if (!res.ok) throw new Error('Failed to fetch samples');
+  return res.json();
+}
+
+export async function getSampleTranscriptContent(sampleId: string): Promise<{ content: string; title: string }> {
+  const res = await fetch(`${BASE_URL}/transcripts/samples/${sampleId}`);
+  if (!res.ok) throw new Error('Failed to fetch sample transcript');
+  return res.json();
+}
+
+export async function cleanTranscript(rawText: string): Promise<CleanTranscriptResult> {
+  const res = await fetch(`${BASE_URL}/transcripts/clean`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw_text: rawText }),
+  });
+  if (!res.ok) throw new Error('Failed to clean transcript');
+  return res.json();
+}
+
 // ─── Users ───────────────────────────────────────────────────────────────────
+
 
 export async function upsertUser(data: {
   google_id: string;

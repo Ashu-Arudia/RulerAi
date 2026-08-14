@@ -1,0 +1,24 @@
+[00:00] Sarah Chen: Good morning everyone. Let's kick off our Q3 product review. We have a packed agenda today.
+[00:12] Marcus Rodriguez: Thanks Sarah. I'll start with the dashboard redesign metrics we shipped last sprint.
+[00:24] Sarah Chen: Perfect. Marcus, go ahead.
+[00:28] Marcus Rodriguez: So the new dashboard shipped on August 1st. We've seen a 34% increase in daily active users and session duration went from 4.2 minutes to 6.8 minutes on average. Really solid numbers.
+[00:45] Lisa Park: That's impressive. Did we isolate what's driving the engagement bump — is it the new widgets or the faster load time?
+[00:55] Marcus Rodriguez: Great question. Our A/B test shows about 60% comes from the widget reorganization and 40% from the sub-second load times we achieved with server components.
+[01:08] Sarah Chen: Excellent. Let's capture that as a key finding. Now on to the AI features roadmap. Lisa, want to walk us through the Q4 priorities?
+[01:18] Lisa Park: Sure. We have three initiatives. First is the smart meeting summaries — LLM-generated overviews with action item extraction. We're targeting a September 15th launch.
+[01:32] David Kim: What model are we using? I've been seeing good results from Groq's llama3 for latency-sensitive tasks.
+[01:41] Lisa Park: We're evaluating both Groq and OpenAI GPT-4o. The team will finalize next week. Cost per summary is a key constraint.
+[01:52] Sarah Chen: Makes sense. Second initiative?
+[01:56] Lisa Park: The semantic search upgrade. We want to move from keyword to semantic vector search across all transcript content. This is a bigger lift — targeting November.
+[02:08] Marcus Rodriguez: Are we building the embeddings pipeline in-house or using a managed service?
+[02:14] Lisa Park: Managed for now — Pinecone or Weaviate. We'll revisit build vs buy in Q1.
+[02:22] David Kim: I'd recommend Weaviate for the hybrid search capability. We can combine keyword and semantic in a single query.
+[02:31] Sarah Chen: Great input David. Third initiative Lisa?
+[02:35] Lisa Park: Personalized coaching recommendations. Based on meeting patterns — speaking time, filler words, participation rates — we'll suggest improvements. This is our Q1 2027 stretch goal.
+[02:50] Sarah Chen: Love it. Alright, action items from today. Marcus, can you write up the dashboard findings for the all-hands deck?
+[03:00] Marcus Rodriguez: On it. I'll have a draft by Thursday.
+[03:04] Sarah Chen: Lisa, please finalize the LLM vendor selection by next Monday.
+[03:09] Lisa Park: Will do.
+[03:11] Sarah Chen: David, can you put together a Weaviate proof-of-concept proposal?
+[03:16] David Kim: Sure, I'll have it by end of week.
+[03:19] Sarah Chen: Perfect. Thanks everyone. Great session.

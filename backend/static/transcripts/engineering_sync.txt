@@ -1,0 +1,28 @@
+[00:00] Alex Turner: Alright team, stand-up time. Let's keep it tight — what's everyone working on?
+[00:06] Priya Nair: Yesterday I finished the API rate limiter. All unit tests passing. Today I'm starting on the webhook retry logic.
+[00:17] Alex Turner: Nice. Any blockers Priya?
+[00:20] Priya Nair: Minor one — I need a staging Slack webhook URL to test the notification pathways. Can someone from DevOps set that up?
+[00:30] Jordan Wells: I'll handle that. I'll DM you the URL by noon.
+[00:35] Alex Turner: Perfect. Jordan, your update?
+[00:38] Jordan Wells: I finished migrating the database schema for multi-tenancy yesterday. Today I'm running the migration on staging and documenting the rollback procedure.
+[00:50] Alex Turner: Has QA signed off on the migration script?
+[00:54] Jordan Wells: Not yet. Amir is reviewing it this morning.
+[01:00] Amir Saidi: Yeah I'll have feedback by 10am.
+[01:04] Alex Turner: Good. Amir, your update?
+[01:07] Amir Saidi: I'm in the middle of the regression suite for the new auth flow. Found two bugs yesterday — one in the token refresh endpoint that causes a 500 on expired sessions, and another where the remember-me flag isn't persisted correctly.
+[01:21] Alex Turner: Critical bugs. How long to fix?
+[01:25] Amir Saidi: The token refresh one is probably a two-hour fix. The remember-me issue is trickier — might need a day.
+[01:33] Priya Nair: I can pair with you on the remember-me issue after I submit the webhook PR.
+[01:38] Amir Saidi: That would be awesome, thanks Priya.
+[01:41] Alex Turner: Let's block time for that at 2pm today. Anything else on the critical path?
+[01:48] Jordan Wells: We need to decide on the caching strategy for the tenant config — Redis vs in-memory. Impacts performance significantly at scale.
+[01:58] Alex Turner: Let's do a quick design review tomorrow. I'll book a 30-min slot with the four of us plus Sanjay from infra.
+[02:08] Jordan Wells: Works for me.
+[02:10] Priya Nair: Same.
+[02:12] Amir Saidi: I'll be there.
+[02:14] Alex Turner: Great. Sprint velocity looks on track. Let's aim to get the auth bugs closed before EOD. Any other blockers?
+[02:24] Jordan Wells: Nothing else from me.
+[02:26] Priya Nair: All good.
+[02:28] Amir Saidi: Nope.
+[02:30] Alex Turner: Solid. See you all at the 2pm pairing session. Good luck with the migration Jordan.
+[02:36] Jordan Wells: Thanks, fingers crossed.

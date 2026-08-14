@@ -44,7 +44,7 @@ export default function LandingPage() {
 
   const handleDemo = () => {
     setDemoLoading(true);
-    router.push('/meetings');
+    router.push('demo/meetings');
   };
 
   return (

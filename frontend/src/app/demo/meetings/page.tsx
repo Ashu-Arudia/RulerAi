@@ -2,17 +2,20 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MeetingsSidebar from '@/components/layout/MeetingsSidebar';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
 import { getMeetings, deleteMeeting, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
 import { Meeting } from '@/lib/types';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useDemoMeetingsStore } from '@/lib/stores/demoMeetingsStore';
+import { useDemoTourStore } from '@/lib/stores/demoTourStore';
 
-/* Demo banner — shown above the page content */
+/* Demo banner */
 function DemoBanner() {
   return (
     <div style={{
@@ -62,44 +65,43 @@ function DemoBanner() {
 function MeetingsContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('date_desc');
-  const [showCreate, setShowCreate] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  // Zustand store for UI state
+  const { search, sort, showCreate, deleteConfirm, setSearch, setSort, setShowCreate, setDeleteConfirm } =
+    useDemoMeetingsStore();
+
+  // Demo tour auto-start
+  const { active: tourActive, start: startTour } = useDemoTourStore();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const seen = localStorage.getItem('ruler_ai_tour_seen');
+    if (!seen && !tourActive) {
+      // Small delay so the page is fully rendered before the tour starts
+      const t = setTimeout(() => startTour(), 800);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const channel = searchParams.get('channel') || 'My Meetings';
 
-  // No userId — demo data (user_id IS NULL in DB)
-  const fetchMeetings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getMeetings({ search: search || undefined, channel, sort }, null);
-      setMeetings(data);
-    } catch {
-      toast('Failed to load meetings', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, channel, sort]);
+  // TanStack Query for meetings
+  const { data: meetings = [], isLoading } = useQuery<Meeting[]>({
+    queryKey: ['demo-meetings', search, channel, sort],
+    queryFn: () => getMeetings({ search: search || undefined, channel, sort }, null),
+  });
 
-  useEffect(() => {
-    const timeout = setTimeout(fetchMeetings, 300);
-    return () => clearTimeout(timeout);
-  }, [fetchMeetings]);
-
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteMeeting(id, null);
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteMeeting(id, null),
+    onSuccess: () => {
       toast('Meeting deleted', 'success');
       setDeleteConfirm(null);
-      fetchMeetings();
-    } catch {
-      toast('Failed to delete meeting', 'error');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['demo-meetings'] });
+    },
+    onError: () => toast('Failed to delete meeting', 'error'),
+  });
 
   return (
     <>
@@ -170,12 +172,12 @@ function MeetingsContent() {
                 <option value="duration_desc">Longest First</option>
               </select>
               <span className="meetings-count">
-                {loading ? 'Loading...' : `${meetings.length} meeting${meetings.length !== 1 ? 's' : ''}`}
+                {isLoading ? 'Loading...' : `${meetings.length} meeting${meetings.length !== 1 ? 's' : ''}`}
               </span>
             </div>
 
             {/* List */}
-            {loading ? (
+            {isLoading ? (
               <div className="meetings-grid">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} style={{ height: 70, borderRadius: 10 }} className="skeleton" />
@@ -202,7 +204,6 @@ function MeetingsContent() {
 
                   return (
                     <div key={meeting.id} style={{ position: 'relative' }}>
-                      {/* Link to demo meeting detail */}
                       <Link href={`/demo/meetings/${meeting.id}`} className="meeting-card">
                         <div className="meeting-card-color" style={{ background: meeting.thumbnail_color }}>
                           {initials}
@@ -273,7 +274,13 @@ function MeetingsContent() {
                             Delete this meeting?
                           </p>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn btn-danger btn-sm" onClick={() => handleDelete(meeting.id)}>Delete</button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => deleteMutation.mutate(meeting.id)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                            </button>
                             <button className="btn btn-ghost btn-sm" onClick={() => setDeleteConfirm(null)}>Cancel</button>
                           </div>
                         </div>
@@ -288,7 +295,10 @@ function MeetingsContent() {
       </div>
 
       {showCreate && (
-        <CreateMeetingModal onClose={() => setShowCreate(false)} onCreated={fetchMeetings} />
+        <CreateMeetingModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['demo-meetings'] })}
+        />
       )}
     </>
   );
