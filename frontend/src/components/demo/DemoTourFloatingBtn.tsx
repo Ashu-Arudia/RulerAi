@@ -41,7 +41,6 @@ export default function DemoTourFloatingBtn() {
         e.currentTarget.style.boxShadow = '0 8px 28px rgba(105, 56, 239, 0.45)';
       }}
     >
-      <span style={{ fontSize: '1.1rem' }}>🤖</span>
       <span>Start Guided Tour</span>
     </button>
   );

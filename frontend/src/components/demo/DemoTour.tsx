@@ -240,7 +240,6 @@ export default function DemoTour() {
                     boxShadow: '0 8px 24px rgba(105,56,239,0.4)',
                   }}
                 >
-                  🤖
                 </div>
                 <h2
                   style={{
@@ -373,7 +372,7 @@ export default function DemoTour() {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(105,56,239,0.4)';
                 }}
               >
-                {currentStep === total - 1 ? 'Finish 🎉' : 'Next →'}
+                {currentStep === total - 1 ? 'Finish' : 'Next →'}
               </button>
             </div>
           </div>

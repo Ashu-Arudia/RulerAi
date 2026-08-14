@@ -13,28 +13,28 @@ export interface TourStep {
 export const DEMO_TOUR_STEPS: TourStep[] = [
   {
     targetId: null,
-    title: 'Welcome to Ruler AI 👋',
+    title: 'Welcome to Ruler AI',
     message: 'This guided tour will show you how to create a meeting, clean raw transcript text with AI, and view auto-generated AI notes.',
     position: 'bottom',
-    asciiBox: `┌─────────────────────┐\n│  Click "Meetings"   │\n│  to view your       │\n│  meeting history.   │\n└─────────▼───────────┘\n      [Meetings]`,
+    asciiBox: ``,
   },
   {
     targetId: 'demo-nav-meetings',
-    title: '📁 Meeting History',
+    title: 'Meeting History',
     message: 'Click "Meetings" anytime in the sidebar to view your meeting history, sample recordings, and uploads.',
     position: 'right',
     spotlightPadding: 6,
   },
   {
     targetId: 'demo-new-meeting-btn',
-    title: '➕ Click "+ New Meeting"',
+    title: 'Click "+ New Meeting"',
     message: 'Click "+ New Meeting" to open the creation modal where you can paste raw notes or upload transcripts.',
     position: 'bottom',
     spotlightPadding: 8,
   },
   {
     targetId: 'meeting-title',
-    title: '✏️ Enter Meeting Title',
+    title: 'Enter Meeting Title',
     message: 'Type a name for your meeting (e.g., "Q4 Roadmap Strategy Sync").',
     position: 'bottom',
     spotlightPadding: 6,
@@ -42,7 +42,7 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'tour-paste-tab',
-    title: '✍️ Paste Raw Notes',
+    title: 'Paste Raw Notes',
     message: 'Switch to "Paste Text" tab and paste your raw transcript text (e.g., "10:02 AM - Alex: Good morning team...").',
     position: 'top',
     spotlightPadding: 6,
@@ -50,7 +50,7 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'clean-with-ai-btn',
-    title: '🪄 Click "Clean with AI"',
+    title: 'Click "Clean with AI"',
     message: 'Click "Clean with AI" to let Groq LLM filter out filler words, normalize timestamps, and auto-detect participants!',
     position: 'top',
     spotlightPadding: 8,
@@ -58,7 +58,7 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'create-meeting-submit',
-    title: '🚀 Create Meeting',
+    title: 'Create Meeting',
     message: 'Click "+ Create Meeting" to save your meeting into your workspace.',
     position: 'top',
     spotlightPadding: 8,
@@ -66,14 +66,14 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'tour-first-meeting-card',
-    title: '🔍 Open Your Meeting',
+    title: 'Open Your Meeting',
     message: 'Click on your newly created meeting card to view its interactive transcript and AI insights.',
     position: 'bottom',
     spotlightPadding: 10,
   },
   {
     targetId: 'tour-notes-panel',
-    title: '✨ AI-Generated Summary & Intelligence',
+    title: 'AI-Generated Summary & Intelligence',
     message: 'Ruler AI automatically generates an Executive Summary, Key Topics, Timed Outline Chapters, and Speaker Action Items!',
     position: 'right',
     spotlightPadding: 8,
