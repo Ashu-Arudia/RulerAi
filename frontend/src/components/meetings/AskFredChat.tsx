@@ -11,10 +11,10 @@ interface Message {
 }
 
 const SAMPLE_PROMPTS = [
-  '💡 What were the key decisions made?',
-  '📋 List all action items and assignees',
-  '🎯 What potential risks or blockers were raised?',
-  '❓ What questions remain unresolved?',
+  'What were the key decisions made?',
+  'List all action items and assignees',
+  'What potential risks or blockers were raised?',
+  'What questions remain unresolved?',
 ];
 
 export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | null }) {
@@ -86,7 +86,7 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
       {/* Header */}
       <div className="askfred-header">
         <div className="askfred-avatar-icon">
-          🤖
+          <img className='w-full h-full object-contain' src="/robot2.svg" alt="AskFred" />
         </div>
         <div>
           <div className="askfred-header-title">
@@ -121,7 +121,7 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
             className={`askfred-msg-wrapper ${m.sender === 'user' ? 'user' : 'fred'}`}
           >
             <div className={`askfred-msg-avatar ${m.sender === 'user' ? 'user' : 'fred'}`}>
-              {m.sender === 'user' ? 'U' : '🤖'}
+              {m.sender === 'user' ? 'U' : <img className='w-full h-full object-contain' src="/robot2.svg" alt="AskFred" />}
             </div>
 
             <div className={`askfred-msg-bubble ${m.sender === 'user' ? 'user' : 'fred'}`}>
@@ -136,7 +136,7 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
         {isTyping && (
           <div className="askfred-msg-wrapper fred">
             <div className="askfred-msg-avatar fred">
-              🤖
+              <img className='w-full h-full object-contain' src="/robot2.svg" alt="AskFred" />
             </div>
             <div className="askfred-msg-bubble fred" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="askfred-msg-time" style={{ fontSize: '0.75rem', opacity: 0.9 }}>

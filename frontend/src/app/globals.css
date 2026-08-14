@@ -1,5 +1,5 @@
-@import "tailwindcss/utilities" layer(utilities);
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss/utilities" layer(utilities);
 
 /* ─── CSS Variables / Design System ────────────────────────────────────────── */
 :root, [data-theme="light"] {
@@ -52,24 +52,24 @@
 }
 
 [data-theme="dark"] {
-  --color-brand: #8b5cf6;
-  --color-brand-hover: #7c3aed;
-  --color-brand-light: rgba(139, 92, 246, 0.22);
-  --color-brand-muted: rgba(139, 92, 246, 0.14);
+  --color-brand: #a855f7;
+  --color-brand-hover: #9333ea;
+  --color-brand-light: rgba(168, 85, 247, 0.2);
+  --color-brand-muted: rgba(168, 85, 247, 0.12);
 
-  --color-bg: #0b0914;
-  --color-surface: #141122;
-  --color-surface-2: #1b172d;
-  --color-surface-3: #24203a;
-  --color-surface-hover: #292443;
+  --color-bg: #09090b;
+  --color-surface: #121215;
+  --color-surface-2: #18181b;
+  --color-surface-3: #27272a;
+  --color-surface-hover: #27272a;
 
-  --color-border: #2c2744;
-  --color-border-strong: #3f3960;
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
 
-  --color-text-primary: #f3f4f6;
-  --color-text-secondary: #a78bfa;
-  --color-text-tertiary: #9ca3af;
-  --color-text-inverse: #0b0914;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-text-inverse: #09090b;
 
   --color-success: #10b981;
   --color-success-light: rgba(16, 185, 129, 0.18);
@@ -80,10 +80,10 @@
   --color-info: #3b82f6;
   --color-info-light: rgba(59, 130, 246, 0.18);
 
-  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.5);
-  --shadow-md: 0 4px 8px -1px rgba(0,0,0,0.6);
-  --shadow-lg: 0 12px 20px -3px rgba(0,0,0,0.7);
-  --shadow-xl: 0 24px 32px -5px rgba(0,0,0,0.8);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.6);
+  --shadow-md: 0 4px 8px -1px rgba(0,0,0,0.7);
+  --shadow-lg: 0 12px 20px -3px rgba(0,0,0,0.8);
+  --shadow-xl: 0 24px 32px -5px rgba(0,0,0,0.9);
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────────── */
@@ -193,17 +193,25 @@ h4 { font-size: 0.875rem; font-weight: 600; }
   left: calc(100% + 10px);
   top: 50%;
   transform: translateY(-50%);
-  background: var(--color-text-primary);
-  color: white;
+  background: #0f172a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   font-size: 0.75rem;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition);
-  z-index: 100;
+  z-index: 9999;
+}
+
+[data-theme="dark"] .sidebar-nav-item .tooltip {
+  background: #18181b;
+  color: #ffffff;
+  border: 1px solid #3f3f46;
 }
 
 .sidebar-nav-item:hover .tooltip { opacity: 1; }
