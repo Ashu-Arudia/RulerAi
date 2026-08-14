@@ -176,6 +176,58 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
             return int(g0) * 3600 + int(g1) * 60 + float(g2)
         return int(g0) * 60 + float(g1)
 
+    # ── Strategy 0: Check for Inline Timestamps with Speakers ─────────────────
+    inline_pattern = re.compile(
+        r"(?:\[|\()?(?:(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*[AP]M)?)(?:\]|\))?\s*(?:[—\-–:]\s*|\s+)([A-Z][a-zA-Z\s\-\.]{1,30}):\s*",
+        re.IGNORECASE
+    )
+    matches = list(inline_pattern.finditer(text))
+
+    if len(matches) >= 2 or (len(matches) == 1 and matches[0].start() == 0):
+        for i, m in enumerate(matches):
+            g = m.groups()
+            ts_val = parse_ts(g[0], g[1], g[2])
+            spk = g[3].strip()
+            start_pos = m.end()
+            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            content = text[start_pos:end_pos].strip()
+            add_line(spk, content)
+        if lines_out:
+            return CleanResponse(
+                cleaned_lines=lines_out,
+                summary_hint="Transcript parsed locally — add your GROQ_API_KEY for AI-powered cleaning.",
+                participant_names=sorted(list(speakers - {"Narrator", "Notes"})),
+            )
+
+    raw_lines = [l.strip() for l in text.strip().splitlines()]
+
+    # ── Strategy 1: [HH:MM:SS] or [MM:SS] with Speaker: text ──────────────────
+    pattern_ts_speaker = re.compile(
+        r"^\[(\d+):(\d+)(?::(\d+))?\]\s*([^:\[\]]{2,40}):\s*(.+)$"
+    )
+    # ── Strategy 2: (HH:MM:SS) or (MM:SS) Speaker: text ──────────────────────
+    pattern_paren_ts = re.compile(
+        r"^\((\d+):(\d+)(?::(\d+))?\)\s*([^:\(\)]{2,40}):\s*(.+)$"
+    )
+    # ── Strategy 3: HH:MM:SS Speaker: text (bare timestamp) ─────────────────
+    pattern_bare_ts = re.compile(
+        r"^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^:\d]{2,40}):\s*(.+)$"
+    )
+    # ── Strategy 4: 10:02 AM — Speaker: text ──────────────────────────────────
+    pattern_dash_ts = re.compile(
+        r"^\d{1,2}:\d{2}(?:\s*[AP]M)?\s*[—\-–]\s*([^:]+):\s*(.+)$", re.IGNORECASE
+    )
+    # ── Strategy 5: SRT/VTT 00:00:00,000 --> 00:00:05,000 ───────────────────
+    pattern_srt_ts = re.compile(r"^\d{2}:\d{2}:\d{2}[,\.]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,\.]\d{3}$")
+    # ── Strategy 6: Slack/WhatsApp Name [HH:MM AM/PM]: text ─────────────────
+    pattern_slack = re.compile(
+        r"^([^:\[\]]{2,40})\s*\[\d{1,2}:\d{2}(?:\s*[AP]M)?\]:\s*(.+)$", re.IGNORECASE
+    )
+    # ── Strategy 7: Plain "Speaker: text" ─────────────────────────────────────
+    pattern_speaker = re.compile(r"^([A-Z][a-zA-Z\s\-\.]{1,35}[a-zA-Z]):\s*(.+)$")
+    # ── Strategy 8: Numbered list "1. text" or "- text" ──────────────────────
+    pattern_bullet = re.compile(r"^(?:\d+[\.\)]\s*|-\s*|\*\s*|•\s*)(.+)$")
+
     matched_any = False
     srt_skip_next = False
 
@@ -203,7 +255,7 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
             matched_any = True
             continue
 
-        # Strategy 3 — bare HH:MM  speaker: text
+        # Strategy 3 — bare HH:MM speaker: text
         m = pattern_bare_ts.match(raw)
         if m:
             current_time = parse_ts(m.group(1), m.group(2), m.group(3))
@@ -211,7 +263,14 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
             matched_any = True
             continue
 
-        # Strategy 4 — SRT timestamp line — skip the ts row, collect next non-empty line
+        # Strategy 4 — 10:02 AM — Speaker: text
+        m = pattern_dash_ts.match(raw)
+        if m:
+            add_line(m.group(1).strip(), m.group(2).strip())
+            matched_any = True
+            continue
+
+        # Strategy 5 — SRT timestamp line — skip the ts row
         if pattern_srt_ts.match(raw):
             srt_skip_next = False
             continue
@@ -220,21 +279,21 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
         if re.match(r"^\d+$", raw):
             continue
 
-        # Strategy 5 — Slack/WhatsApp style
+        # Strategy 6 — Slack/WhatsApp style
         m = pattern_slack.match(raw)
         if m:
             add_line(m.group(1).strip(), m.group(2).strip())
             matched_any = True
             continue
 
-        # Strategy 6 — "Speaker: text"
+        # Strategy 7 — "Speaker: text"
         m = pattern_speaker.match(raw)
         if m:
             add_line(m.group(1).strip(), m.group(2).strip())
             matched_any = True
             continue
 
-        # Strategy 7 — bullets/numbered lists (treat as generic notes)
+        # Strategy 8 — bullets/numbered lists (treat as generic notes)
         m = pattern_bullet.match(raw)
         if m:
             add_line("Notes", m.group(1).strip())
@@ -256,12 +315,9 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
             add_line("Narrator", raw)
             matched_any = True
 
-    # ── Strategy 8: paragraph-level fallback — split on sentences if nothing matched ──
+    # ── Strategy C: paragraph-level fallback — split on sentences if nothing matched ──
     if not lines_out:
-        import textwrap
-        # Split on sentence boundaries
         sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-        # Group into ~3-sentence chunks as "Narrator" entries
         for i in range(0, len(sentences), 3):
             chunk = " ".join(sentences[i:i+3]).strip()
             if chunk:
@@ -270,7 +326,7 @@ def _smart_fallback_parse(text: str) -> CleanResponse:
     return CleanResponse(
         cleaned_lines=lines_out,
         summary_hint="Transcript parsed locally — add your GROQ_API_KEY for AI-powered cleaning.",
-        participant_names=sorted(speakers - {"Narrator", "Notes"}),
+        participant_names=sorted(list(speakers - {"Narrator", "Notes"})),
     )
 
 
@@ -338,4 +394,179 @@ async def clean_transcript(req: CleanRequest):
 
     # Smart multi-strategy fallback
     return _smart_fallback_parse(raw_text)
+
+
+def generate_meeting_analysis(title: str, participants: List[str], transcript_lines: List[dict]) -> dict:
+    """
+    Generates summary overview, key topics, outline chapters, and action items
+    from meeting title, participants, and transcript lines.
+    Uses Groq LLM if GROQ_API_KEY is available, or smart fallback heuristic otherwise.
+    """
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if api_key and api_key != "your_groq_api_key_here":
+        try:
+            import httpx
+            spk_str = ", ".join(participants) if participants else "Team"
+            transcript_text = "\n".join([
+                f"[{int(l.get('start_time', 0))//60:02d}:{int(l.get('start_time', 0))%60:02d}] {l.get('speaker', 'Speaker')}: {l.get('text', '')}"
+                for l in transcript_lines
+            ])
+
+            prompt = f"""Analyze the following meeting transcript and extract structured JSON meeting notes.
+
+Meeting Title: {title}
+Participants: {spk_str}
+
+Transcript:
+{transcript_text[:5000]}
+
+Return strictly valid JSON with this schema:
+{{
+  "overview": "A 2-3 sentence executive summary of key discussion points and outcomes.",
+  "key_topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
+  "chapters": [
+    {{ "timestamp": 0, "title": "Chapter 1 Title", "description": "Brief description of topics discussed in this segment" }},
+    {{ "timestamp": 30, "title": "Chapter 2 Title", "description": "Brief description of topics discussed in this segment" }}
+  ],
+  "action_items": [
+    {{ "text": "Clear action item statement", "assignee": "Person Name or null", "due_date": "Tomorrow / Next Week / Date" }}
+  ]
+}}
+"""
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            body = {
+                "model": "llama3-70b-8192",
+                "messages": [
+                    {"role": "system", "content": "You are an AI meeting intelligence system that outputs JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.3,
+            }
+            with httpx.Client(timeout=15.0) as client:
+                res = client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body)
+                if res.status_code == 200:
+                    content_str = res.json()["choices"][0]["message"]["content"]
+                    parsed = json.loads(content_str)
+                    if "overview" in parsed and "key_topics" in parsed and "chapters" in parsed:
+                        return parsed
+        except Exception:
+            pass  # Fall through to smart fallback generator
+
+    return _fallback_meeting_analysis(title, participants, transcript_lines)
+
+
+def _fallback_meeting_analysis(title: str, participants: List[str], transcript_lines: List[dict]) -> dict:
+    """
+    Generates intelligent summary, topics, chapters, and action items locally without an API key.
+    """
+    spk_names = [p for p in participants if p not in {"Narrator", "Notes"}]
+    if not spk_names:
+        spk_names = list({l.get("speaker") for l in transcript_lines if l.get("speaker") not in {"Narrator", "Notes"}})
+    if not spk_names:
+        spk_names = ["Team"]
+
+    # 1. Overview
+    all_text = " ".join([l.get("text", "") for l in transcript_lines])
+    words = all_text.split()
+    first_few = " ".join(words[:40]) if words else "The team held a sync."
+    overview = f"During this {title} meeting, {', '.join(spk_names[:3])} aligned on key project updates, review milestones, and technical implementation details. {first_few}..."
+
+    # 2. Key Topics
+    candidates = []
+    title_terms = [w.strip(":,.-") for w in title.split() if len(w) > 3 and w.lower() not in {"sync", "call", "review", "meeting"}]
+    candidates.extend(title_terms)
+
+    keywords = ["dashboard", "authentication", "api", "roadmap", "filters", "database", "ui/ux", "frontend", "backend", "analytics", "performance", "integration", "deployment", "sprint", "metrics", "compliance", "testing"]
+    found_kw = [kw.capitalize() for kw in keywords if re.search(r'\b' + kw + r'\b', all_text, re.IGNORECASE)]
+    candidates.extend(found_kw)
+
+    cap_matches = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b', all_text)
+    for cap in cap_matches:
+        if cap not in spk_names and len(cap) < 30:
+            candidates.append(cap)
+
+    key_topics = []
+    for c in candidates:
+        if c not in key_topics and len(key_topics) < 5:
+            key_topics.append(c)
+
+    if not key_topics:
+        key_topics = [f"{title} Strategy", "Sprint Progress", "Technical Alignment", "Next Steps"]
+
+    # 3. Chapters / Outline
+    chapters = []
+    total_lines = len(transcript_lines)
+    if total_lines == 0:
+        chapters = [{"timestamp": 0, "title": "Meeting Start", "description": "Overview of meeting goals."}]
+    elif total_lines <= 3:
+        first_line = transcript_lines[0]
+        chapters.append({
+            "timestamp": round(first_line.get("start_time", 0)),
+            "title": f"Discussion: {key_topics[0] if key_topics else title}",
+            "description": first_line.get("text", "")[:120] + "..."
+        })
+    else:
+        c1_idx = 0
+        c2_idx = max(1, total_lines // 3)
+        c3_idx = max(2, (2 * total_lines) // 3)
+
+        indices = [("Introduction & Agenda", c1_idx), (f"Deep Dive: {key_topics[0]}", c2_idx), ("Action Plan & Wrap-up", c3_idx)]
+        for label, idx in indices:
+            if idx < total_lines:
+                line = transcript_lines[idx]
+                chapters.append({
+                    "timestamp": round(line.get("start_time", 0)),
+                    "title": label,
+                    "description": line.get("text", "")[:120] + "..."
+                })
+
+    # 4. Action Items
+    action_items = []
+    action_triggers = re.compile(
+        r'\b(?:i\'ll|i will|need to|should|working on|going to|will handle|assign|finish|complete|implement|fix)\b',
+        re.IGNORECASE
+    )
+
+    for line in transcript_lines:
+        text_content = line.get("text", "")
+        spk = line.get("speaker", "")
+        if action_triggers.search(text_content):
+            cleaned_action = re.sub(r'^(?:well|so|yeah|yes|great|okay|thanks),?\s*', '', text_content, flags=re.IGNORECASE)
+            assignee = spk if spk not in {"Narrator", "Notes"} else (spk_names[0] if spk_names else None)
+            
+            due = "Tomorrow"
+            if re.search(r'next week', text_content, re.I):
+                due = "Next Week"
+            elif re.search(r'friday|end of week', text_content, re.I):
+                due = "End of Week"
+
+            action_items.append({
+                "text": cleaned_action[:150],
+                "assignee": assignee,
+                "due_date": due
+            })
+            if len(action_items) >= 4:
+                break
+
+    if not action_items:
+        for i, name in enumerate(spk_names[:2]):
+            topic_ref = key_topics[i % len(key_topics)] if key_topics else "meeting deliverables"
+            action_items.append({
+                "text": f"Follow up on {topic_ref.lower()} implementation and report status",
+                "assignee": name,
+                "due_date": "Tomorrow" if i == 0 else "End of Week"
+            })
+
+    return {
+        "overview": overview,
+        "key_topics": key_topics,
+        "chapters": chapters,
+        "action_items": action_items
+    }
+
 

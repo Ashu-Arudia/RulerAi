@@ -88,6 +88,9 @@ def list_meetings(
     return [_meeting_to_out(m) for m in meetings]
 
 
+from routers.llm import generate_meeting_analysis
+
+
 @router.get("/{meeting_id}", response_model=dict)
 def get_meeting(
     meeting_id: int,
@@ -98,6 +101,36 @@ def get_meeting(
     meeting = query.filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Auto-generate summary & action items if missing but transcript exists
+    if not meeting.summary and meeting.transcript_lines:
+        participants_list = json.loads(meeting.participants) if meeting.participants else []
+        line_dicts = [
+            {"speaker": tl.speaker, "text": tl.text, "start_time": tl.start_time, "end_time": tl.end_time}
+            for tl in meeting.transcript_lines
+        ]
+        analysis = generate_meeting_analysis(meeting.title, participants_list, line_dicts)
+
+        summary = Summary(
+            meeting_id=meeting.id,
+            overview=analysis["overview"],
+            key_topics=json.dumps(analysis.get("key_topics", [])),
+            chapters=json.dumps(analysis.get("chapters", [])),
+        )
+        db.add(summary)
+
+        if not meeting.action_items:
+            for ai in analysis.get("action_items", []):
+                db.add(ActionItem(
+                    meeting_id=meeting.id,
+                    text=ai["text"],
+                    assignee=ai.get("assignee"),
+                    due_date=ai.get("due_date"),
+                    completed=False
+                ))
+
+        db.commit()
+        db.refresh(meeting)
 
     result = _meeting_to_out(meeting)
     result["transcript_lines"] = [
@@ -152,9 +185,37 @@ def create_meeting(
     db.flush()
 
     if meeting_data.transcript_text:
-        lines = _parse_transcript_text(meeting_data.transcript_text, meeting.id)
+        lines, speakers = _parse_transcript_text(meeting_data.transcript_text, meeting.id)
         for line in lines:
             db.add(line)
+        # If participants were not explicitly provided, auto-fill from parsed speakers
+        if speakers and (not meeting_data.participants or meeting_data.participants == ["Host"]):
+            meeting.participants = json.dumps(sorted(list(speakers)))
+
+        # Auto-generate Summary & Action Items
+        participants_list = json.loads(meeting.participants) if meeting.participants else []
+        line_dicts = [
+            {"speaker": l.speaker, "text": l.text, "start_time": l.start_time, "end_time": l.end_time}
+            for l in lines
+        ]
+        analysis = generate_meeting_analysis(meeting.title, participants_list, line_dicts)
+
+        summary = Summary(
+            meeting_id=meeting.id,
+            overview=analysis["overview"],
+            key_topics=json.dumps(analysis.get("key_topics", [])),
+            chapters=json.dumps(analysis.get("chapters", [])),
+        )
+        db.add(summary)
+
+        for ai in analysis.get("action_items", []):
+            db.add(ActionItem(
+                meeting_id=meeting.id,
+                text=ai["text"],
+                assignee=ai.get("assignee"),
+                due_date=ai.get("due_date"),
+                completed=False
+            ))
 
     db.commit()
     db.refresh(meeting)
@@ -224,48 +285,185 @@ async def upload_transcript(
     text = content.decode("utf-8", errors="ignore")
 
     db.query(TranscriptLine).filter(TranscriptLine.meeting_id == meeting_id).delete()
-    lines = _parse_transcript_text(text, meeting_id)
+    lines, speakers = _parse_transcript_text(text, meeting_id)
     for line in lines:
         db.add(line)
+
+    if speakers:
+        meeting.participants = json.dumps(sorted(list(speakers)))
+
+    if lines:
+        participants_list = json.loads(meeting.participants) if meeting.participants else []
+        line_dicts = [
+            {"speaker": l.speaker, "text": l.text, "start_time": l.start_time, "end_time": l.end_time}
+            for l in lines
+        ]
+        analysis = generate_meeting_analysis(meeting.title, participants_list, line_dicts)
+
+        if meeting.summary:
+            meeting.summary.overview = analysis["overview"]
+            meeting.summary.key_topics = json.dumps(analysis.get("key_topics", []))
+            meeting.summary.chapters = json.dumps(analysis.get("chapters", []))
+        else:
+            summary = Summary(
+                meeting_id=meeting.id,
+                overview=analysis["overview"],
+                key_topics=json.dumps(analysis.get("key_topics", [])),
+                chapters=json.dumps(analysis.get("chapters", [])),
+            )
+            db.add(summary)
+
+        db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).delete()
+        for ai in analysis.get("action_items", []):
+            db.add(ActionItem(
+                meeting_id=meeting.id,
+                text=ai["text"],
+                assignee=ai.get("assignee"),
+                due_date=ai.get("due_date"),
+                completed=False
+            ))
 
     db.commit()
     return {"message": f"Uploaded {len(lines)} transcript lines", "count": len(lines)}
 
 
-def _parse_transcript_text(text: str, meeting_id: int) -> List[TranscriptLine]:
+
+def _parse_transcript_text(text: str, meeting_id: int):
+    """
+    Parses ANY transcript format (inline timestamps, speaker turns, dash formats, SRT, etc.)
+    into structured database TranscriptLine models.
+    """
     import re
     lines = []
+    speakers = set()
     current_time = 0.0
 
-    for raw_line in text.strip().splitlines():
-        raw_line = raw_line.strip()
-        if not raw_line:
+    def add_line(spk: str, content: str, forced_start: Optional[float] = None):
+        nonlocal current_time
+        content = content.strip()
+        spk = spk.strip()
+        if not content:
+            return
+        start = forced_start if forced_start is not None else current_time
+        words = len(content.split())
+        duration = max(5.0, min(30.0, words / 2.3))
+        end = start + duration
+        current_time = end
+
+        if spk not in {"Narrator", "Notes"}:
+            speakers.add(spk)
+
+        lines.append(TranscriptLine(
+            meeting_id=meeting_id,
+            speaker=spk,
+            text=content,
+            start_time=round(start, 1),
+            end_time=round(end, 1),
+        ))
+
+    def parse_ts(g0, g1, g2) -> float:
+        if g2:
+            return int(g0) * 3600 + int(g1) * 60 + float(g2)
+        return int(g0) * 60 + float(g1)
+
+    # Strategy A: Check for Inline Timestamps with Speakers
+    # Matches: "10:02 AM — Alex: text", "10:02 - Alex: text", "[00:12] Alex: text"
+    inline_pattern = re.compile(
+        r"(?:\[|\()?(?:(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*[AP]M)?)(?:\]|\))?\s*(?:[—\-–:]\s*|\s+)([A-Z][a-zA-Z\s\-\.]{1,30}):\s*",
+        re.IGNORECASE
+    )
+    matches = list(inline_pattern.finditer(text))
+
+    if len(matches) >= 2 or (len(matches) == 1 and matches[0].start() == 0):
+        for i, m in enumerate(matches):
+            g = m.groups()
+            ts_val = parse_ts(g[0], g[1], g[2])
+            spk = g[3].strip()
+            start_pos = m.end()
+            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            content = text[start_pos:end_pos].strip()
+            add_line(spk, content, forced_start=ts_val)
+        if lines:
+            return lines, speakers
+
+    # Strategy B: Line-by-Line Parsing
+    raw_lines = [l.strip() for l in text.splitlines() if l.strip()]
+
+    pattern_ts_speaker = re.compile(r"^\[(\d+):(\d+)(?::(\d+))?\]\s*([^:\[\]]{2,40}):\s*(.+)$")
+    pattern_paren_ts = re.compile(r"^\((\d+):(\d+)(?::(\d+))?\)\s*([^:\(\)]{2,40}):\s*(.+)$")
+    pattern_bare_ts = re.compile(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^:\d]{2,40}):\s*(.+)$")
+    pattern_dash_ts = re.compile(r"^\d{1,2}:\d{2}(?:\s*[AP]M)?\s*[—\-–]\s*([^:]+):\s*(.+)$", re.IGNORECASE)
+    pattern_slack = re.compile(r"^([^:\[\]]{2,40})\s*\[\d{1,2}:\d{2}(?:\s*[AP]M)?\]:\s*(.+)$", re.IGNORECASE)
+    pattern_speaker = re.compile(r"^([A-Z][a-zA-Z\s\-\.]{1,35}[a-zA-Z]):\s*(.+)$")
+    pattern_bullet = re.compile(r"^(?:\d+[\.\)]\s*|-\s*|\*\s*|•\s*)(.+)$")
+    pattern_srt_ts = re.compile(r"^\d{2}:\d{2}:\d{2}[,\.]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,\.]\d{3}$")
+
+    matched_any = False
+
+    for raw in raw_lines:
+        if pattern_srt_ts.match(raw) or re.match(r"^\d+$", raw):
             continue
 
-        m = re.match(r"^\[(\d+):(\d+)(?::(\d+))?\]\s*([^:]+):\s*(.+)$", raw_line)
+        m = pattern_ts_speaker.match(raw)
         if m:
-            groups = m.groups()
-            if groups[2]:
-                start = int(groups[0]) * 3600 + int(groups[1]) * 60 + float(groups[2])
-            else:
-                start = int(groups[0]) * 60 + float(groups[1])
-            speaker = groups[3].strip()
-            text_content = groups[4].strip()
-            lines.append(TranscriptLine(
-                meeting_id=meeting_id, speaker=speaker, text=text_content,
-                start_time=start, end_time=start + 10.0
-            ))
-            current_time = start + 10.0
+            ts = parse_ts(m.group(1), m.group(2), m.group(3))
+            add_line(m.group(4), m.group(5), forced_start=ts)
+            matched_any = True
             continue
 
-        m = re.match(r"^([A-Z][^:]{2,40}):\s*(.+)$", raw_line)
+        m = pattern_paren_ts.match(raw)
         if m:
-            speaker = m.group(1).strip()
-            text_content = m.group(2).strip()
-            lines.append(TranscriptLine(
-                meeting_id=meeting_id, speaker=speaker, text=text_content,
-                start_time=current_time, end_time=current_time + 10.0
-            ))
-            current_time += 10.0
+            ts = parse_ts(m.group(1), m.group(2), m.group(3))
+            add_line(m.group(4), m.group(5), forced_start=ts)
+            matched_any = True
+            continue
 
-    return lines
+        m = pattern_bare_ts.match(raw)
+        if m:
+            ts = parse_ts(m.group(1), m.group(2), m.group(3))
+            add_line(m.group(4), m.group(5), forced_start=ts)
+            matched_any = True
+            continue
+
+        m = pattern_dash_ts.match(raw)
+        if m:
+            add_line(m.group(1), m.group(2))
+            matched_any = True
+            continue
+
+        m = pattern_slack.match(raw)
+        if m:
+            add_line(m.group(1), m.group(2))
+            matched_any = True
+            continue
+
+        m = pattern_speaker.match(raw)
+        if m:
+            add_line(m.group(1), m.group(2))
+            matched_any = True
+            continue
+
+        m = pattern_bullet.match(raw)
+        if m:
+            add_line("Notes", m.group(1))
+            matched_any = True
+            continue
+
+        if matched_any and lines:
+            lines[-1].text += " " + raw
+            lines[-1].end_time += 3.0
+            current_time = lines[-1].end_time
+        else:
+            add_line("Narrator", raw)
+            matched_any = True
+
+    # Strategy C: Paragraph/Sentence Splitter
+    if not lines:
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        for i in range(0, len(sentences), 3):
+            chunk = " ".join(sentences[i:i+3]).strip()
+            if chunk:
+                add_line("Narrator", chunk)
+
+    return lines, speakers
+

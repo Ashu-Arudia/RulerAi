@@ -568,7 +568,7 @@ export default function MeetingDetailPage() {
     return (
       <div className="empty-state" style={{ height: '100%' }}>
         <h3>Meeting not found</h3>
-        <Link href="/meetings" className="btn btn-primary" style={{ marginTop: 16 }}>Back to Meetings</Link>
+        <Link href="/demo/meetings" className="btn btn-primary" style={{ marginTop: 16 }}>Back to Meetings</Link>
       </div>
     );
   }
@@ -580,7 +580,7 @@ export default function MeetingDetailPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div className="meeting-detail-header">
-        <button className="meeting-detail-back" onClick={() => router.push('/meetings')}>
+        <button className="meeting-detail-back" onClick={() => router.push('/demo/meetings')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
           </svg>
