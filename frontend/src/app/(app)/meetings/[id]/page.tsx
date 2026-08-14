@@ -6,8 +6,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getMeeting, updateMeeting, createActionItem, updateActionItem, deleteActionItem, formatDuration, formatTime, formatDate, getInitials, getSpeakerColor } from '@/lib/api';
-import { MeetingDetail, TranscriptLine, ActionItem } from '@/lib/types';
+import { MeetingDetail, TranscriptLine, ActionItem, TranscriptComment } from '@/lib/types';
 import { useToast } from '@/components/ui/ToastProvider';
+import ExportMeetingModal from '@/components/meetings/ExportMeetingModal';
+import AskFredChat from '@/components/meetings/AskFredChat';
+
 
 // ─── Audio Player Component ──────────────────────────────────────────────────
 function AudioPlayer({
@@ -219,9 +222,7 @@ function NotesPanel({
                       </span>
                     )}
                     {item.due_date && (
-                      <span>
-                        Due {item.due_date}
-                      </span>
+                      <span>Due {item.due_date}</span>
                     )}
                   </div>
                 </div>
@@ -282,7 +283,13 @@ function TranscriptPanel({
   currentTime: number;
   onSeek: (t: number) => void;
 }) {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
+  const [highlightedIds, setHighlightedIds] = useState<Set<number>>(new Set());
+  const [activeCommentLineId, setActiveCommentLineId] = useState<number | null>(null);
+  const [commentsMap, setCommentsMap] = useState<Record<number, TranscriptComment[]>>({});
+  const [newCommentInput, setNewCommentInput] = useState('');
+
   const activeLineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -304,6 +311,45 @@ function TranscriptPanel({
     }
   }, [activeIdx]);
 
+  const toggleHighlight = (e: React.MouseEvent, lineId: number) => {
+    e.stopPropagation();
+    setHighlightedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lineId)) {
+        next.delete(lineId);
+        toast('Soundbite removed', 'info');
+      } else {
+        next.add(lineId);
+        toast('Marked as Soundbite highlight ⭐', 'success');
+      }
+      return next;
+    });
+  };
+
+  const handleCopyQuote = (e: React.MouseEvent, line: TranscriptLine) => {
+    e.stopPropagation();
+    const text = `"[${formatTime(line.start_time)}] ${line.speaker}: ${line.text}"`;
+    navigator.clipboard.writeText(text);
+    toast('Soundbite quote copied to clipboard', 'success');
+  };
+
+  const handleAddComment = (lineId: number) => {
+    if (!newCommentInput.trim()) return;
+    const newComment: TranscriptComment = {
+      id: String(Date.now()),
+      line_id: lineId,
+      author: 'You',
+      text: newCommentInput.trim(),
+      created_at: 'Just now',
+    };
+    setCommentsMap((prev) => ({
+      ...prev,
+      [lineId]: [...(prev[lineId] || []), newComment],
+    }));
+    setNewCommentInput('');
+    toast('Comment added to segment', 'success');
+  };
+
   const filteredLines = search
     ? lines.filter((l) => l.text.toLowerCase().includes(search.toLowerCase()) || l.speaker.toLowerCase().includes(search.toLowerCase()))
     : lines;
@@ -322,24 +368,33 @@ function TranscriptPanel({
     );
   };
 
-  // Group lines by speaker for display
   const displayLines = search ? filteredLines : lines;
 
   return (
     <div className="transcript-panel">
-      <div className="transcript-search-bar">
-        <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          id="transcript-search"
-          type="text"
-          placeholder="Search transcript..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && matchCount > 0 && (
-          <span className="transcript-search-count">{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
+      {/* Search & Soundbites Bar */}
+      <div className="transcript-search-bar flex items-center justify-between gap-3 p-3">
+        <div className="flex items-center gap-2 flex-1">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            id="transcript-search"
+            type="text"
+            placeholder="Search transcript..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent outline-none text-xs"
+          />
+          {search && matchCount > 0 && (
+            <span className="transcript-search-count">{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
+          )}
+        </div>
+
+        {highlightedIds.size > 0 && (
+          <div className="text-[0.72rem] font-semibold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 flex items-center gap-1">
+            <span>⭐</span> {highlightedIds.size} Soundbite{highlightedIds.size !== 1 ? 's' : ''}
+          </div>
         )}
       </div>
 
@@ -349,26 +404,143 @@ function TranscriptPanel({
             <p>No matches found for &quot;{search}&quot;</p>
           </div>
         ) : (
-          displayLines.map((line, idx) => {
+          displayLines.map((line) => {
             const isActive = !search && lines.indexOf(line) === activeIdx;
+            const isHighlighted = highlightedIds.has(line.id);
             const speakerColor = getSpeakerColor(line.speaker);
+            const lineComments = commentsMap[line.id] || [];
+            const showCommentBox = activeCommentLineId === line.id;
 
             return (
               <div
                 key={line.id}
                 ref={isActive ? activeLineRef : undefined}
-                className={`transcript-line ${isActive ? 'active' : ''} ${search ? 'highlighted' : ''}`}
+                className={`transcript-line group relative transition-all p-3 border-b border-[var(--color-border)] ${
+                  isActive ? 'active bg-[var(--color-surface-2)]' : ''
+                } ${isHighlighted ? 'bg-amber-500/5 border-l-4 border-l-amber-500' : ''}`}
                 onClick={() => onSeek(line.start_time)}
               >
-                <span className="transcript-line-timestamp">{formatTime(line.start_time)}</span>
-                <div className="transcript-line-body">
-                  <div className="transcript-line-speaker" style={{ color: speakerColor }}>
-                    {line.speaker}
+                <div className="flex items-start justify-between gap-3">
+                  <span className="transcript-line-timestamp text-[0.72rem] text-[var(--color-text-tertiary)] font-mono">
+                    {formatTime(line.start_time)}
+                  </span>
+
+                  <div className="transcript-line-body flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="transcript-line-speaker font-bold text-xs" style={{ color: speakerColor }}>
+                        {line.speaker}
+                      </span>
+                      {isHighlighted && (
+                        <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                          ⭐ Soundbite
+                        </span>
+                      )}
+                      {lineComments.length > 0 && (
+                        <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                          💬 {lineComments.length} comment{lineComments.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="transcript-line-text text-xs leading-relaxed text-[var(--color-text-primary)]">
+                      {highlightText(line.text)}
+                    </div>
                   </div>
-                  <div className="transcript-line-text">
-                    {highlightText(line.text)}
+
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={(e) => toggleHighlight(e, line.id)}
+                      className={`p-1.5 rounded-lg border transition-all ${
+                        isHighlighted
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                          : 'bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-tertiary)] hover:text-amber-500'
+                      }`}
+                      title={isHighlighted ? 'Unmark soundbite' : 'Mark as Soundbite Highlight'}
+                    >
+                      ★
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveCommentLineId(showCommentBox ? null : line.id);
+                      }}
+                      className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-tertiary)] hover:text-[var(--color-brand)] transition-all"
+                      title="Add Comment"
+                    >
+                      💬
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyQuote(e, line)}
+                      className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-tertiary)] hover:text-emerald-500 transition-all"
+                      title="Copy Quote Link"
+                    >
+                      📋
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSeek(line.start_time);
+                      }}
+                      className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-tertiary)] hover:text-blue-500 transition-all"
+                      title="Play Soundbite Audio"
+                    >
+                      ▶
+                    </button>
                   </div>
                 </div>
+
+                {/* Existing Comments List */}
+                {lineComments.length > 0 && (
+                  <div className="mt-3 ml-12 space-y-2 border-l-2 border-purple-500/30 pl-3">
+                    {lineComments.map((c) => (
+                      <div key={c.id} className="text-xs bg-[var(--color-surface-2)] p-2 rounded-lg border border-[var(--color-border)]">
+                        <div className="flex items-center justify-between text-[0.7rem] text-[var(--color-text-tertiary)] font-medium mb-0.5">
+                          <span className="text-[var(--color-brand)] font-bold">{c.author}</span>
+                          <span>{c.created_at}</span>
+                        </div>
+                        <p className="text-[var(--color-text-primary)]">{c.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Inline Comment Input Box */}
+                {showCommentBox && (
+                  <div className="mt-3 ml-12 p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-xs font-semibold text-[var(--color-text-primary)]">Add Comment to Segment</div>
+                    <textarea
+                      value={newCommentInput}
+                      onChange={(e) => setNewCommentInput(e.target.value)}
+                      placeholder="Write your note or feedback on this statement..."
+                      className="w-full p-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-xs outline-none focus:border-[var(--color-brand)] text-[var(--color-text-primary)]"
+                      rows={2}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveCommentLineId(null)}
+                        className="px-3 py-1 text-xs rounded-lg border border-[var(--color-border)] text-[var(--color-text-tertiary)]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddComment(line.id)}
+                        className="px-3 py-1 text-xs rounded-lg bg-[var(--color-brand)] text-white font-semibold"
+                      >
+                        Post Comment
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
@@ -464,6 +636,7 @@ export default function MeetingDetailPage() {
   const [leftTab, setLeftTab] = useState<'notes' | 'aiskills'>('notes');
   const [rightTab, setRightTab] = useState<'transcript' | 'askfred'>('transcript');
   const [editOpen, setEditOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Player state (mocked)
   const [playing, setPlaying] = useState(false);
@@ -632,6 +805,21 @@ export default function MeetingDetailPage() {
             ))}
           </div>
 
+          {/* Export button */}
+          <button
+            className="btn btn-ghost btn-sm text-[var(--color-brand)]"
+            onClick={() => setExportOpen(true)}
+            title="Export transcript or notes (PDF, Markdown, TXT)"
+            id="export-meeting-btn"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+
           {/* Edit button */}
           <button
             className="btn btn-ghost btn-sm"
@@ -647,6 +835,13 @@ export default function MeetingDetailPage() {
           </button>
         </div>
       </div>
+
+      {exportOpen && (
+        <ExportMeetingModal
+          meeting={meeting}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
 
       {/* Split Pane */}
       <div className="split-pane" style={{ flex: 1 }}>
@@ -719,19 +914,9 @@ export default function MeetingDetailPage() {
               onSeek={handleSeek}
             />
           ) : (
-            <div className="tab-content">
-              <div className="placeholder-page">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="1.5">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <h2>AskFred</h2>
-                <p style={{ fontSize: '0.875rem', textAlign: 'center', maxWidth: 260 }}>
-                  Ask any question about this meeting and get instant AI-powered answers based on the transcript.
-                </p>
-                <span className="coming-soon-badge">Coming Soon</span>
-              </div>
-            </div>
+            <AskFredChat meeting={meeting} />
           )}
+
         </div>
       </div>
 

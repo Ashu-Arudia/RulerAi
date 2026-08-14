@@ -287,7 +287,7 @@ export default function DemoHomePage() {
           <div className="home-account-left">
             <div className="home-pro-tag">PRO</div>
             <div>
-              <div className="home-account-plan">ScalerAI Pro Plan Active</div>
+              <div className="home-account-plan">RulerAI Pro Plan Active</div>
               <div className="home-account-sub">Unlimited LLM transcriptions & intelligence summaries</div>
             </div>
           </div>

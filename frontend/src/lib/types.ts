@@ -7,7 +7,27 @@ export interface TranscriptLine {
   text: string;
   start_time: number;
   end_time: number;
+  is_highlighted?: boolean;
 }
+
+export interface TranscriptComment {
+  id: string;
+  line_id: number;
+  author: string;
+  text: string;
+  created_at: string;
+}
+
+export interface Soundbite {
+  id: string;
+  line_id: number;
+  meeting_id: number;
+  speaker: string;
+  text: string;
+  start_time: number;
+  end_time: number;
+}
+
 
 export interface Chapter {
   title: string;

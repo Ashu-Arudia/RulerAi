@@ -8,7 +8,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import MeetingsSidebar from '@/components/layout/MeetingsSidebar';
 import CreateMeetingModal from '@/components/meetings/CreateMeetingModal';
+import GlobalSearchModal from '@/components/common/GlobalSearchModal';
 import ThemeToggle from '@/components/common/ThemeToggle';
+
 import { getMeetings, deleteMeeting, formatDuration, formatRelativeDate, getInitials, getSpeakerColor } from '@/lib/api';
 import { Meeting } from '@/lib/types';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -27,6 +29,32 @@ function MeetingsContent() {
   const [sort, setSort] = useState('date_desc');
   const [showCreate, setShowCreate] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  const popularTags = ['API', 'Database', 'Performance', 'Sprint', 'Design', 'Security', 'Frontend', 'Backend', 'LLM'];
+
+  const handleTagClick = (tag: string) => {
+    if (selectedTag === tag) {
+      setSelectedTag(null);
+      setSearch('');
+    } else {
+      setSelectedTag(tag);
+      setSearch(tag);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
 
   const channel = searchParams.get('channel') || 'My Meetings';
 
@@ -101,16 +129,18 @@ function MeetingsContent() {
       <div className="main-content">
         {/* Topbar */}
         <div className="topbar">
-          <div className="topbar-search">
+          <div className="topbar-search cursor-pointer" onClick={() => setSearchModalOpen(true)}>
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               id="meetings-search"
               type="text"
-              placeholder="Search by title or keyword"
+              placeholder="Search across all meetings (Ctrl+K)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              readOnly
+              className="cursor-pointer"
             />
             <span className="topbar-kbd">Ctrl+K</span>
           </div>
@@ -149,9 +179,16 @@ function MeetingsContent() {
           </div>
         </div>
 
+        {/* Global Search Modal */}
+        <GlobalSearchModal
+          isOpen={searchModalOpen}
+          onClose={() => setSearchModalOpen(false)}
+          isDemo={false}
+        />
+
         {/* Content */}
         <div className="page-content">
-          <div className="meetings-page">
+          <div className="meetings-page space-y-4">
             <div className="meetings-page-header">
               <div>
                 <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 2 }}>{channel}</h1>
@@ -160,6 +197,39 @@ function MeetingsContent() {
                 </p>
               </div>
             </div>
+
+            {/* Key Topics Tag Bar */}
+            <div className="topic-filter-container">
+              <span className="topic-filter-label">
+                Filter by Topic:
+              </span>
+              {popularTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleTagClick(tag)}
+                  className={`topic-filter-chip ${
+                    selectedTag === tag || search.toLowerCase() === tag.toLowerCase() ? 'active' : ''
+                  }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+              {(selectedTag || search) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTag(null);
+                    setSearch('');
+                  }}
+                  className="topic-filter-clear"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+
+
 
             {/* Filters */}
             <div className="meetings-filters">

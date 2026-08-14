@@ -324,7 +324,7 @@ export default function LandingPage() {
                 <line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
             </div>
-            <span className="landing-logo-name">Scaler<span>AI</span></span>
+            <span className="landing-logo-name">Ruler<span>AI</span></span>
           </div>
 
           {/* Live badge */}

@@ -12,7 +12,7 @@ from routers import meetings, transcripts, summaries, action_items, users
 from routers import llm as llm_router
 
 app = FastAPI(
-    title="ScalerAI",
+    title="RulerAI",
     description="Meeting Notes & Transcription Platform API",
     version="1.0.0",
 )

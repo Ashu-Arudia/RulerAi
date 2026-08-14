@@ -403,15 +403,7 @@ export default function LandingPage() {
                 <line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
             </div>
-            <span className="landing-logo-name">Scaler<span>AI</span></span>
-          </div>
-
-          {/* Demo badge */}
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="demo-badge">
-              <div className="demo-dot" />
-              Live Product
-            </div>
+            <span className="landing-logo-name">Ruler<span>AI</span></span>
           </div>
 
           {/* Headline */}
@@ -480,10 +472,10 @@ export default function LandingPage() {
 
           {/* Feature pills */}
           <div className="landing-pills">
-            <FeaturePill icon="✦" text="AI Transcription" />
-            <FeaturePill icon="⚡" text="Action Items" />
-            <FeaturePill icon="🔒" text="Secure & Private" />
-            <FeaturePill icon="📊" text="Analytics" />
+            <FeaturePill icon="" text="AI Transcription" />
+            <FeaturePill icon="" text="Action Items" />
+            <FeaturePill icon="" text="Secure & Private" />
+            <FeaturePill icon="" text="Analytics" />
           </div>
 
           {/* Footer note */}

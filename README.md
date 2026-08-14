@@ -50,7 +50,7 @@ Open **http://localhost:3000** — you'll be redirected to the meetings library.
 ## 🏗 Architecture Overview
 
 ```
-ScalerAi/
+RulerAi/
 ├── backend/
 │   ├── main.py              # FastAPI app, CORS, router mounting, startup seed
 │   ├── database.py          # SQLAlchemy models, engine, session factory

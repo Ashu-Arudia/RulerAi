@@ -1955,3 +1955,391 @@ h4 { font-size: 0.875rem; font-weight: 600; }
   border-color: var(--color-error);
 }
 
+/* ─── AskFred Chat Component ─────────────────────────────────────────── */
+.askfred-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--color-surface);
+  overflow: hidden;
+  position: relative;
+}
+
+.askfred-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.askfred-avatar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: rgba(105, 56, 239, 0.12);
+  border: 1px solid rgba(105, 56, 239, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.askfred-header-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+}
+
+.askfred-header-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.askfred-chips-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.askfred-chips-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.askfred-chip-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.askfred-chip-btn:hover {
+  color: var(--color-brand);
+  border-color: var(--color-brand-light);
+  background: var(--color-surface-3);
+}
+
+.askfred-feed {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.askfred-msg-wrapper {
+  display: flex;
+  gap: 10px;
+  max-width: 88%;
+}
+
+.askfred-msg-wrapper.user {
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+.askfred-msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.askfred-msg-avatar.fred {
+  background: rgba(105, 56, 239, 0.15);
+  color: var(--color-brand);
+  border: 1px solid rgba(105, 56, 239, 0.25);
+}
+
+.askfred-msg-avatar.user {
+  background: var(--color-brand);
+  color: white;
+}
+
+.askfred-msg-bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.askfred-msg-bubble.fred {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-top-left-radius: 2px;
+}
+
+.askfred-msg-bubble.user {
+  background: var(--color-brand);
+  color: white;
+  border-top-right-radius: 2px;
+}
+
+.askfred-msg-time {
+  font-size: 0.6875rem;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.askfred-input-area {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  flex-shrink: 0;
+}
+
+body:has(#demo-floating-tour-btn) .askfred-input-area {
+  padding-right: 180px;
+}
+
+
+.askfred-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.askfred-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  outline: none;
+  font-family: inherit;
+  transition: border-color var(--transition);
+}
+
+.askfred-input:focus {
+  border-color: var(--color-brand);
+}
+
+.askfred-send-btn {
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand);
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+
+.askfred-send-btn:hover:not(:disabled) {
+  background: var(--color-brand-hover);
+}
+
+.askfred-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Export Modal Custom Styles ───────────────────────────────────────── */
+.export-scope-grid {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.export-scope-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+
+.export-scope-btn:hover {
+  border-color: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+.export-scope-btn.active {
+  background: rgba(105, 56, 239, 0.12);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+.export-format-grid {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.export-format-card {
+  flex: 1;
+  padding: 14px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: inherit;
+}
+
+.export-format-card:hover {
+  border-color: var(--color-brand-light);
+  box-shadow: var(--shadow-xs);
+}
+
+.export-format-card.active {
+  background: rgba(105, 56, 239, 0.12);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 1px var(--color-brand);
+}
+
+.export-format-icon {
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+}
+
+.export-format-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.export-format-card.active .export-format-title {
+  color: var(--color-brand);
+}
+
+.export-format-desc {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Topic Filter Bar ─────────────────────────────────────────────────── */
+.topic-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+
+.topic-filter-container::-webkit-scrollbar {
+  display: none;
+}
+
+.topic-filter-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topic-filter-chip {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topic-filter-chip:hover {
+  color: var(--color-brand);
+  border-color: var(--color-brand-light);
+  background: var(--color-surface-3);
+  transform: translateY(-1px);
+}
+
+.topic-filter-chip.active {
+  background: var(--color-brand);
+  color: white;
+  border-color: var(--color-brand);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(105, 56, 239, 0.35);
+}
+
+.topic-filter-clear {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-brand);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: 8px;
+  flex-shrink: 0;
+  text-decoration: underline;
+  transition: color var(--transition);
+}
+
+.topic-filter-clear:hover {
+  color: var(--color-brand-hover);
+}
+
+
+
+

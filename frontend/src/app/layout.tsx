@@ -5,7 +5,7 @@ import SessionProvider from '@/components/providers/SessionProvider';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'ScalerAI — AI Meeting Intelligence',
+  title: 'RulerAI — AI Meeting Intelligence',
   description: 'Record, transcribe, and analyze your meetings with AI-powered notes, action items, and summaries.',
 };
 
