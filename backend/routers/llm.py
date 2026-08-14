@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -592,7 +592,9 @@ def _fallback_meeting_analysis(title: str, participants: List[str], transcript_l
 
 class ChatRequest(BaseModel):
     query: str
-    meeting_id: Optional[int] = None
+    meeting_id: Optional[Union[int, str]] = None
+    meeting_title: Optional[str] = None
+    transcript_text: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -611,27 +613,36 @@ def ask_fred_chat(
         raise HTTPException(status_code=400, detail="query is required")
 
     transcript_context = ""
-    meeting_title = "Workspace Meetings"
+    meeting_title = req.meeting_title or "Current Working Meeting"
 
-    if req.meeting_id:
-        m_query = db.query(Meeting).filter(Meeting.id == req.meeting_id)
-        if x_user_id:
-            m_query = m_query.filter(Meeting.user_id == x_user_id)
-        else:
-            m_query = m_query.filter(Meeting.user_id == None)  # noqa: E711
-        meeting = m_query.first()
+    # 1. Use client-provided transcript text if present
+    if req.transcript_text and req.transcript_text.strip():
+        transcript_context = req.transcript_text.strip()
+    elif req.meeting_id:
+        # 2. Try fetching from Database by ID
+        try:
+            m_id_int = int(req.meeting_id)
+            m_query = db.query(Meeting).filter(Meeting.id == m_id_int)
+            if x_user_id:
+                m_query = m_query.filter(Meeting.user_id == x_user_id)
+            else:
+                m_query = m_query.filter(Meeting.user_id == None)  # noqa: E711
+            meeting = m_query.first()
 
-        if meeting:
-            meeting_title = meeting.title
-            lines = (
-                db.query(TranscriptLine)
-                .filter(TranscriptLine.meeting_id == meeting.id)
-                .order_by(TranscriptLine.start_time)
-                .all()
-            )
-            transcript_context = "\n".join([f"{l.speaker}: {l.text}" for l in lines])
-    else:
-        # Global query across meetings
+            if meeting:
+                meeting_title = meeting.title
+                lines = (
+                    db.query(TranscriptLine)
+                    .filter(TranscriptLine.meeting_id == meeting.id)
+                    .order_by(TranscriptLine.start_time)
+                    .all()
+                )
+                transcript_context = "\n".join([f"{l.speaker}: {l.text}" for l in lines])
+        except (ValueError, TypeError):
+            pass
+
+    # 3. Fallback if context is still empty (e.g. demo meeting or global search)
+    if not transcript_context.strip():
         m_query = db.query(Meeting)
         if x_user_id:
             m_query = m_query.filter(Meeting.user_id == x_user_id)
@@ -640,13 +651,24 @@ def ask_fred_chat(
         meetings = m_query.limit(5).all()
         m_ids = [m.id for m in meetings]
 
-        lines = (
-            db.query(TranscriptLine)
-            .filter(TranscriptLine.meeting_id.in_(m_ids))
-            .limit(100)
-            .all()
-        )
-        transcript_context = "\n".join([f"[{l.speaker}]: {l.text}" for l in lines])
+        if m_ids:
+            lines = (
+                db.query(TranscriptLine)
+                .filter(TranscriptLine.meeting_id.in_(m_ids))
+                .limit(100)
+                .all()
+            )
+            transcript_context = "\n".join([f"[{l.speaker}]: {l.text}" for l in lines])
+
+        # If DB is empty, read static bundled transcript files
+        if not transcript_context.strip():
+            static_texts = []
+            for sample in SAMPLE_TRANSCRIPTS:
+                file_path = os.path.join(STATIC_DIR, sample["filename"])
+                if os.path.exists(file_path):
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        static_texts.append(f"[{sample['title']}]\n{f.read()}")
+            transcript_context = "\n\n".join(static_texts)
 
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if api_key and api_key != "your_groq_api_key_here":

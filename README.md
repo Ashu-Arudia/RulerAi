@@ -1,135 +1,129 @@
-# Ruler AI — Meeting Notes & Transcription Platform
+#  RulerAI — Next-Gen AI Meeting Intelligence Platform
 
-A full-stack clone of the Fireflies.ai meeting-assistant platform, built as part of the SDE Fullstack Assignment. Features a pixel-faithful recreation of the Fireflies workspace experience with interactive transcripts, AI summaries, action items, and full CRUD meeting management.
-
----
-
-## Quick Start
-
-### Prerequisites
-- **Node.js** 18+
-- **Python** 3.10+
-- **npm**
-
-### 1. Backend Setup
-
-```bash
-cd backend
-pip install fastapi uvicorn sqlalchemy python-multipart aiofiles python-dotenv pydantic
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-The backend will automatically:
-- Create the SQLite database (`fireflies.db`)
-- Seed 5 complete demo meetings with transcripts, summaries, and action items
-
-### 2. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open **http://localhost:3000** — you'll be redirected to the meetings library.
+> **RulerAI** is a high-fidelity, full-stack AI meeting assistant platform inspired by Fireflies.ai. Built with Next.js 15, FastAPI, and Groq LLM, RulerAI transforms unstructured meeting recordings and raw text transcripts into structured summaries, key topics, chapters, and actionable tasks — powered by AskFred AI chat, obsidian dark mode, multi-format exports, and user-isolated workspaces.
 
 ---
 
-## 🛠 Tech Stack
+##  Features & Capabilities
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | Next.js 15 (App Router, TypeScript) |
-| **Styling** | Vanilla CSS (custom design system) |
-| **Backend** | Python FastAPI |
-| **Database** | SQLite via SQLAlchemy ORM |
-| **Font** | Inter (Google Fonts) |
+-  **AskFred AI Assistant**: Context-aware meeting Q&A powered by Groq LLM (`llama-3.3-70b-versatile`). Ask about specific speakers (e.g., *"What did Rachel discuss?"*), decisions, action items, or risks.
+-  **Any-Format AI Transcript Cleaning**: Upload raw, unstructured text from Zoom, Teams, Meet, Slack, or audio notes. Groq LLM automatically parses speakers, dialogue, and timestamps.
+-  **User Data Isolation & Authentication**: Google OAuth (NextAuth.js) + per-user database scoping via `X-User-Id` headers. Dedicated `/home` workspace for logged-in users and isolated `/demo` environment.
+-  **Obsidian Black Dark Mode**: Curated dark theme palette (`#09090b` obsidian background) with seamless contrast tooltips and instant theme toggling.
+-  **Multi-Format Export**: Export meeting notes, summaries, action items, and transcripts directly to **PDF**, **Markdown (`.md`)**, or **Plain Text (`.txt`)**.
+-  **Tags, Topics & Global Search**: Filter meetings by tags, channel, or topic chips. Perform instant global regex search across all meeting transcripts in your workspace.
+-  **Interactive Media Player & Transcript Sync**: Bidirectional sync between audio player timeline, chapter outlines, and color-coded transcript lines.
+-  **1-Click Cloud Deployment**: Production-ready configurations for **Render / Railway / Docker** backend and **Vercel** frontend.
 
 ---
 
-## 🏗 Architecture Overview
+##  Tech Stack
 
-```
-RulerAi/
+| Layer | Technology | Description |
+|---|---|---|
+| **Frontend** | Next.js 15 (App Router, TypeScript) | High-performance React framework with server & client components |
+| **Authentication** | NextAuth.js | Google OAuth 2.0 with JWT session persistence |
+| **Styling** | Vanilla CSS + Design System | Custom CSS tokens, glassmorphism, obsidian dark theme |
+| **Backend** | Python FastAPI | Asynchronous REST API with Pydantic validation |
+| **LLM Engine** | Groq API (`llama-3.3-70b-versatile`) | Real-time transcript extraction, meeting summaries, and AskFred Q&A |
+| **Database** | SQLAlchemy ORM | Dual SQLite (`fireflies.db`) & PostgreSQL production support |
+| **Deployment** | Render, Docker, Vercel | `render.yaml`, `Procfile`, `Dockerfile`, `runtime.txt` |
+
+---
+
+##  Architecture Overview
+
+```text
+ScalerAi/
 ├── backend/
-│   ├── main.py              # FastAPI app, CORS, router mounting, startup seed
-│   ├── database.py          # SQLAlchemy models, engine, session factory
-│   ├── models.py            # Pydantic request/response models
-│   ├── seed_data.py         # Demo data seeder (5 meetings with full content)
-│   ├── routers/
-│   │   ├── meetings.py      # CRUD + transcript upload endpoints
-│   │   ├── transcripts.py   # Get transcript + global search
-│   │   ├── summaries.py     # Get/update meeting summaries
-│   │   └── action_items.py  # CRUD action items per meeting
-│   └── requirements.txt
+│   ├── main.py              # FastAPI application, CORS policy, router mounting
+│   ├── database.py          # SQLAlchemy models, SQLite & PostgreSQL engine factory
+│   ├── seed_data.py         # Seed demo data with 5 complete meeting records
+│   ├── runtime.txt          # Python 3.11.9 runtime for Render / Heroku
+│   ├── Procfile             # Process execution file for production web workers
+│   ├── render.yaml          # Render blueprint specification
+│   ├── Dockerfile           # Multi-stage production container build
+│   ├── .env.example         # Environment variable template
+│   └── routers/
+│       ├── meetings.py      # CRUD + transcript upload endpoints
+│       ├── llm.py           # /clean, /chat (AskFred), /samples
+│       ├── transcripts.py   # Transcript detail + global search
+│       ├── summaries.py     # Summary overview, topics, chapters
+│       ├── action_items.py  # Action item tracking
+│       └── users.py         # User account scoping
 │
 └── frontend/
+    ├── .env.example         # Vercel environment variable template
     └── src/
         ├── app/
-        │   ├── layout.tsx          # Root layout: sidebar + toast provider
-        │   ├── page.tsx            # Redirect → /meetings
-        │   ├── meetings/page.tsx   # Meetings library
-        │   ├── meetings/[id]/page.tsx  # Meeting detail (split pane)
-        │   ├── tasks/page.tsx      # Placeholder
-        │   ├── analytics/page.tsx  # Placeholder
-        │   ├── settings/page.tsx   # Settings placeholder
-        │   ├── askfred/page.tsx    # Placeholder
-        │   ├── ai-skills/page.tsx  # Placeholder
-        │   └── integrations/page.tsx # Integrations placeholder
+        │   ├── layout.tsx              # Root layout & providers
+        │   ├── (landing)/page.tsx      # High-converting landing page
+        │   ├── (app)/home/page.tsx     # Authenticated user dashboard (/home)
+        │   ├── (app)/meetings/[id]/... # Meeting detail split-pane view
+        │   ├── (app)/askfred/page.tsx  # Workspace-wide AskFred chat
+        │   └── demo/...                # Isolated demo workspace routes
         ├── components/
-        │   ├── layout/
-        │   │   ├── Sidebar.tsx         # Icon nav sidebar (60px)
-        │   │   └── MeetingsSidebar.tsx # Channel sub-sidebar (240px)
-        │   ├── meetings/
-        │   │   └── CreateMeetingModal.tsx
-        │   └── ui/
-        │       └── ToastProvider.tsx   # Toast notification context
+        │   ├── layout/                 # Navigation, sidebar, dual-pane headers
+        │   ├── meetings/               # AskFredChat, CreateMeetingModal, ExportModal
+        │   └── demo/                   # Guided interactive feature tour
         └── lib/
-            ├── api.ts      # All API fetch functions + utilities
-            └── types.ts    # TypeScript interfaces
+            ├── api.ts                  # Fetch API wrapper with X-User-Id header support
+            ├── auth.ts                 # NextAuth Google provider setup
+            └── types.ts                # TypeScript interface definitions
 ```
 
 ---
 
-## 🗄 Database Schema
+##  Database Schema
 
 ```sql
--- meetings: core meeting metadata
-CREATE TABLE meetings (
-    id              INTEGER PRIMARY KEY,
-    title           TEXT NOT NULL,
-    date            DATETIME NOT NULL,
-    duration_seconds INTEGER DEFAULT 0,
-    host            TEXT NOT NULL,
-    participants    TEXT DEFAULT '[]',    -- JSON array of names
-    status          TEXT DEFAULT 'completed',
-    audio_url       TEXT,
-    thumbnail_color TEXT DEFAULT '#6938ef',
-    channel         TEXT DEFAULT 'My Meetings',
-    created_at      DATETIME,
-    updated_at      DATETIME
+-- users: authenticated Google accounts
+CREATE TABLE users (
+    id          INTEGER PRIMARY KEY,
+    google_id   VARCHAR(100) UNIQUE NOT NULL,
+    email       VARCHAR(255) UNIQUE NOT NULL,
+    name        VARCHAR(255),
+    image       TEXT,
+    created_at  DATETIME
 );
 
--- transcript_lines: per-line transcript with speaker + timestamps
+-- meetings: core meeting metadata (scoped to user_id)
+CREATE TABLE meetings (
+    id               INTEGER PRIMARY KEY,
+    user_id          VARCHAR(100) REFERENCES users(google_id),
+    title            TEXT NOT NULL,
+    date             DATETIME NOT NULL,
+    duration_seconds INTEGER DEFAULT 0,
+    host             TEXT NOT NULL,
+    participants     TEXT DEFAULT '[]',     -- JSON array of names
+    status           TEXT DEFAULT 'completed',
+    audio_url        TEXT,
+    thumbnail_color  TEXT DEFAULT '#6938ef',
+    channel          TEXT DEFAULT 'My Meetings',
+    created_at       DATETIME,
+    updated_at       DATETIME
+);
+
+-- transcript_lines: per-line dialogue with timestamps
 CREATE TABLE transcript_lines (
     id          INTEGER PRIMARY KEY,
     meeting_id  INTEGER REFERENCES meetings(id) ON DELETE CASCADE,
     speaker     TEXT NOT NULL,
     text        TEXT NOT NULL,
-    start_time  REAL NOT NULL,  -- seconds
+    start_time  REAL NOT NULL,
     end_time    REAL NOT NULL
 );
 
--- summaries: AI-generated summary content (1:1 with meeting)
+-- summaries: AI meeting executive summary & outline
 CREATE TABLE summaries (
     id          INTEGER PRIMARY KEY,
     meeting_id  INTEGER UNIQUE REFERENCES meetings(id) ON DELETE CASCADE,
     overview    TEXT NOT NULL,
-    key_topics  TEXT DEFAULT '[]',  -- JSON array of strings
-    chapters    TEXT DEFAULT '[]'   -- JSON array of {title, timestamp, description}
+    key_topics  TEXT DEFAULT '[]',   -- JSON array of topic strings
+    chapters    TEXT DEFAULT '[]'    -- JSON array of timestamped chapters
 );
 
--- action_items: tasks extracted from meetings
+-- action_items: extracted action items and assignees
 CREATE TABLE action_items (
     id          INTEGER PRIMARY KEY,
     meeting_id  INTEGER REFERENCES meetings(id) ON DELETE CASCADE,
@@ -140,129 +134,104 @@ CREATE TABLE action_items (
     created_at  DATETIME,
     updated_at  DATETIME
 );
-
--- meeting_tags: many tags per meeting
-CREATE TABLE meeting_tags (
-    id          INTEGER PRIMARY KEY,
-    meeting_id  INTEGER REFERENCES meetings(id) ON DELETE CASCADE,
-    tag         TEXT NOT NULL
-);
 ```
-
-**Design choices:**
-- Cascade deletes on all child tables (transcript, summary, action items, tags) when a meeting is deleted
-- `participants` stored as JSON text in SQLite (no separate table needed given scope)
-- `chapters` and `key_topics` stored as JSON in summary table for flexible structure
-- `start_time`/`end_time` stored as REAL (float seconds) to support sub-second precision
 
 ---
 
-## 📡 API Reference
+##  API Reference
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/meetings` | List meetings (search, channel, sort query params) |
-| GET | `/meetings/{id}` | Full meeting with transcript, summary, action items |
-| POST | `/meetings` | Create meeting (with optional transcript_text) |
-| PUT | `/meetings/{id}` | Update meeting metadata |
-| DELETE | `/meetings/{id}` | Delete meeting and all related data |
-| POST | `/meetings/{id}/transcript/upload` | Upload .txt transcript file |
-| GET | `/transcripts/{meeting_id}` | Get transcript lines for a meeting |
-| GET | `/transcripts/search/global?q=...` | Search across all transcripts |
-| GET | `/summaries/{meeting_id}` | Get AI summary for a meeting |
-| PUT | `/summaries/{meeting_id}` | Update summary content |
-| GET | `/action-items/meeting/{meeting_id}` | List action items for a meeting |
-| POST | `/action-items/meeting/{meeting_id}` | Create an action item |
-| PUT | `/action-items/{id}` | Update / complete an action item |
-| DELETE | `/action-items/{id}` | Delete an action item |
+| `GET` | `/health` | Server health check endpoint |
+| `GET` | `/meetings` | List meetings (supports `user_id` scope, search, channel, sort) |
+| `POST` | `/meetings` | Create meeting record |
+| `GET` | `/meetings/{id}` | Get full meeting detail with transcript, summary, and action items |
+| `DELETE` | `/meetings/{id}` | Delete meeting and all child records |
+| `POST` | `/transcripts/clean` | AI transcript extraction & speaker parsing (Groq LLM) |
+| `POST` | `/transcripts/chat` | AskFred AI chat Q&A endpoint |
+| `GET` | `/transcripts/search/global?q=...` | Global transcript search across workspace |
+| `GET` | `/summaries/{meeting_id}` | Retrieve AI meeting summary |
+| `PUT` | `/summaries/{meeting_id}` | Update meeting summary overview or topics |
+| `GET` | `/action-items/meeting/{meeting_id}` | List action items for a meeting |
+| `POST` | `/action-items/meeting/{meeting_id}` | Create new action item |
+| `PUT` | `/action-items/{id}` | Toggle completion status or edit action item |
 
-Interactive API docs available at: **http://localhost:8000/docs**
-
----
-
-## ✨ Core Features
-
-### Meetings Library
-- List of meetings with color blocks, title, date, duration, participant avatars, status badges
-- Filter by channel (My Meetings, All Meetings, custom channels)
-- Search by title/host/participants
-- Sort by date, duration, or title
-- Delete with confirmation popover
-
-### Meeting Detail (Split Pane)
-- **Left pane**: Notes panel + Audio Player
-  - AI meeting summary (overview text)
-  - Key topics as chips
-  - Outline/chapters with clickable timestamps → seeks player
-  - Action items with check/uncheck, add new, delete
-- **Right pane**: Transcript / AskFred tabs
-  - Full transcript with speaker labels, color-coded per speaker, timestamps
-  - Clickable transcript line → seeks mock player
-  - Player time progress → auto-scrolls and highlights active transcript line
-  - Transcript search with keyword highlighting and match count
-
-### Mock Audio Player
-- Seek bar with click-to-seek
-- Play/pause toggle
-- ±15s skip buttons
-- Time display (current / total)
-- Linked bidirectionally with transcript highlighting
-
-### Meeting CRUD
-- Create: form with title, host, date, duration, participants, channel, color, optional transcript paste
-- Edit: update title, host, participants via modal
-- Delete: confirmation popover on hover
-
-### Transcript Upload
-- Paste transcript in create modal
-- Supports `Speaker: Text` and `[MM:SS] Speaker: Text` formats
+Interactive Swagger documentation is available at: **`http://localhost:8000/docs`**
 
 ---
 
-## 🎨 Design System
+##  Quick Start Guide
 
-Faithful to the Fireflies color palette and layout:
-- **Brand Purple**: `#6938ef`
-- **Background**: `#f5f6fa`
-- **Surface**: `#ffffff`
-- **Dual sidebar**: 60px icon nav + 240px channel list
-- **Font**: Inter (Google Fonts)
+### Prerequisites
+- **Node.js** 18+ & **npm**
+- **Python** 3.10+
+
+### 1. Backend Setup (FastAPI)
+
+```bash
+cd backend
+
+# Create virtual environment (optional but recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start local server
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+The backend automatically initializes `fireflies.db` and seeds 5 demo meetings on startup.
+
+### 2. Frontend Setup (Next.js)
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Open **`http://localhost:3000`** in your browser.
 
 ---
 
-## 🌐 Mocked / Placeholder Sections
+##  Cloud Deployment Guide
 
-The following features are present as "Coming Soon" placeholders:
-- AskFred AI chat (within meeting detail and global)
-- AI Skills runner
-- Real-time bot / speech-to-text
-- Zoom / Google Meet / calendar integrations
-- Analytics dashboard
-- Team collaboration and sharing
-- Real authentication (default user: Sarah Chen)
+### Deploy Backend to Render
+
+1. Create a **New Web Service** on Render connected to your repository.
+2. Select root directory `/backend`.
+3. Set **Build Command**:
+   ```bash
+   python -m pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+   ```
+4. Set **Start Command**:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port $PORT
+   ```
+5. Add Environment Variables:
+   - `GROQ_API_KEY`: *(Your Groq API Key)*
+   - `FRONTEND_URL`: `https://your-app.vercel.app`
+   - `PYTHON_VERSION`: `3.11.9`
+
+### Deploy Frontend to Vercel
+
+1. Import your project into **Vercel**.
+2. Select root directory `/frontend`.
+3. Configure Environment Variables:
+   - `NEXT_PUBLIC_API_URL`: `https://your-backend.onrender.com` *(No trailing slash)*
+   - `NEXTAUTH_URL`: `https://your-app.vercel.app`
+   - `NEXTAUTH_SECRET`: *(Random 32-character string)*
+   - `GOOGLE_CLIENT_ID`: *(From Google Cloud Console)*
+   - `GOOGLE_CLIENT_SECRET`: *(From Google Cloud Console)*
+4. Click **Deploy**.
 
 ---
 
-## 📦 Seed Data
+##  License
 
-Five rich demo meetings are seeded at startup:
-
-| Meeting | Host | Duration | Participants | Actions |
-|---|---|---|---|---|
-| Q3 Product Roadmap Review | Sarah Chen | 45m | 8 | 6 |
-| Sales Pipeline Weekly Sync | Marcus Johnson | 32m | 4 | 5 |
-| Engineering Standup — Sprint 42 | James Okafor | 22m | 6 | 5 |
-| Customer Success Interview — Horizon Analytics | Rachel Green | 55m | 3 | 4 |
-| Marketing Campaign Brainstorm — Q4 Launch | Alex Rivera | 38m | 5 | 6 |
-
-Each meeting includes 20-35 realistic transcript lines, a 4-section AI summary with chapters, and action items with assignees and due dates.
-
----
-
-## 🔮 Assumptions
-
-1. **No real authentication**: A default user (Sarah Chen) is assumed to be logged in.
-2. **No actual audio**: The media player is a fully-functional seek/playback UI backed by a JavaScript timer, not a real audio file.
-3. **Transcript formats**: The parser supports two formats; complex VTT is not implemented.
-4. **SQLite**: Chosen for simplicity; the schema and queries are compatible with PostgreSQL with minimal changes.
-5. **CORS**: Frontend dev server (`localhost:3000`) is whitelisted in CORS config.
+Distributed under the MIT License. See `LICENSE` for details.

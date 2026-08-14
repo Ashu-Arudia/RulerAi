@@ -226,8 +226,10 @@ export function formatDuration(seconds: number): string {
 
 export async function askFredChat(
   query: string,
-  meetingId?: number | null,
+  meetingId?: number | string | null,
   userId?: string | null,
+  transcriptText?: string | null,
+  meetingTitle?: string | null,
 ): Promise<{ answer: string; sources?: string[] }> {
   return request<{ answer: string; sources?: string[] }>(
     '/transcripts/chat',
@@ -236,6 +238,8 @@ export async function askFredChat(
       body: JSON.stringify({
         query,
         meeting_id: meetingId ?? null,
+        meeting_title: meetingTitle ?? null,
+        transcript_text: transcriptText ?? null,
       }),
     },
     userId,

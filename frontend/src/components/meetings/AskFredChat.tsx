@@ -52,8 +52,13 @@ export default function AskFredChat({ meeting }: { meeting?: MeetingDetail | nul
     setIsTyping(true);
 
     try {
-      // 1. Attempt live LLM Backend call
-      const res = await askFredChat(query, meeting?.id, userId);
+      // Automatically extract transcript text from current working meeting
+      const transcriptText = meeting?.transcript_lines
+        ?.map((l) => `${l.speaker}: ${l.text}`)
+        .join('\n');
+
+      // 1. Attempt live LLM Backend call with working meeting transcript context
+      const res = await askFredChat(query, meeting?.id, userId, transcriptText, meeting?.title);
       const fredMsg: Message = {
         id: String(Date.now() + 1),
         sender: 'fred',
