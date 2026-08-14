@@ -342,23 +342,36 @@ async def clean_transcript(req: CleanRequest):
     if api_key and api_key != "your_groq_api_key_here":
         try:
             from groq import Groq
-            client = Groq(api_key=api_key)
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": GROQ_SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Extract and clean this transcript. "
-                            "It may be in any format — do your best to identify speakers and dialogue.\n\n"
-                            f"{raw_text}"
-                        ),
-                    },
-                ],
-                model="llama3-70b-8192",
-                temperature=0.15,
-                max_tokens=6000,
-            )
+            # Try primary active Groq model, falling back to instant/legacy models
+            models_to_try = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192"]
+            chat_completion = None
+
+            for model_name in models_to_try:
+                try:
+                    chat_completion = client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": GROQ_SYSTEM_PROMPT},
+                            {
+                                "role": "user",
+                                "content": (
+                                    "Extract and clean this transcript. "
+                                    "It may be in any format — do your best to identify speakers and dialogue.\n\n"
+                                    f"{raw_text}"
+                                ),
+                            },
+                        ],
+                        model=model_name,
+                        temperature=0.15,
+                        max_tokens=6000,
+                    )
+                    if chat_completion and chat_completion.choices:
+                        break
+                except Exception:
+                    continue
+
+            if not chat_completion:
+                return _smart_fallback_parse(raw_text)
+
             result_text = chat_completion.choices[0].message.content.strip()
 
             # Strip any accidental markdown fences
@@ -438,22 +451,27 @@ Return strictly valid JSON with this schema:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
-            body = {
-                "model": "llama3-70b-8192",
-                "messages": [
-                    {"role": "system", "content": "You are an AI meeting intelligence system that outputs JSON only."},
-                    {"role": "user", "content": prompt}
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.3,
-            }
+            models_to_try = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192"]
             with httpx.Client(timeout=15.0) as client:
-                res = client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body)
-                if res.status_code == 200:
-                    content_str = res.json()["choices"][0]["message"]["content"]
-                    parsed = json.loads(content_str)
-                    if "overview" in parsed and "key_topics" in parsed and "chapters" in parsed:
-                        return parsed
+                for model_name in models_to_try:
+                    try:
+                        body = {
+                            "model": model_name,
+                            "messages": [
+                                {"role": "system", "content": "You are an AI meeting intelligence system that outputs JSON only."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            "response_format": {"type": "json_object"},
+                            "temperature": 0.3,
+                        }
+                        res = client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body)
+                        if res.status_code == 200:
+                            content_str = res.json()["choices"][0]["message"]["content"]
+                            parsed = json.loads(content_str)
+                            if "overview" in parsed and "key_topics" in parsed and "chapters" in parsed:
+                                return parsed
+                    except Exception:
+                        continue
         except Exception:
             pass  # Fall through to smart fallback generator
 

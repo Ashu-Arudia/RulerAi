@@ -8,7 +8,8 @@ import {
   Summary,
 } from './types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 /**
  * Core fetch wrapper.
@@ -29,7 +30,8 @@ async function request<T>(
     headers['X-User-Id'] = userId;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const res = await fetch(`${BASE_URL}${cleanPath}`, {
     ...options,
     headers,
   });
